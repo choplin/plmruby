@@ -1,3 +1,4 @@
+#include <postgres.h>
 #include <access/htup_details.h>
 #include <catalog/pg_type.h>
 #include <mb/pg_wchar.h>
@@ -62,6 +63,12 @@ static mrb_value
 
 static mrb_value
 		to_mrb_string_encoding(mrb_state *mrb, const char *str, size_t len, int encoding);
+
+static char *
+		mrb_str_to_cstr_palloc(mrb_value mrb_str);
+
+static Datum
+		mrb_string_to_text_datum(mrb_value mrb_str);
 
 void
 plmruby_fill_type(plmruby_type *type, Oid typid, MemoryContext mcxt)
@@ -167,6 +174,7 @@ record_datum_to_mrb_value(mrb_state *mrb, Datum datum, bool isnull, plmruby_type
 	mrb_value result = tuple_to_mrb_value(converter, &tuple);
 
 	ReleaseTupleDesc(tupdesc);
+	delete_tuple_converter(converter);
 
 	return result;
 }
@@ -226,7 +234,6 @@ scalar_datum_to_mrb_value(mrb_state *mrb, Datum datum, bool isnull, plmruby_type
 		case TEXTOID:
 		case VARCHAROID:
 		case BPCHAROID:
-		case XMLOID:
 		{
 			void *p = PG_DETOAST_DATUM_PACKED(datum);
 			const char *str = VARDATA_ANY(p);
@@ -239,6 +246,33 @@ scalar_datum_to_mrb_value(mrb_state *mrb, Datum datum, bool isnull, plmruby_type
 
 			return result;
 		}
+		case XMLOID:
+		{
+			void *p = PG_DETOAST_DATUM_PACKED(datum);
+			const char *str = VARDATA_ANY(p);
+			size_t len = VARSIZE_ANY_EXHDR(p);
+
+			mrb_value xml_str = to_mrb_string(mrb, str, len);
+
+			/* TODO: should be cached? */
+			struct RClass *xml_module = mrb_module_get(mrb, "TineXML2");
+			struct RClass *xml_document_class = mrb_class_get_under(mrb, xml_module, "XMLDocument");
+			mrb_value doc = mrb_obj_new(mrb, xml_document_class, 0, NULL);
+
+			mrb_value result = mrb_funcall(mrb, doc, "parse", 1, xml_str);
+
+			if (p != DatumGetPointer(datum))
+				pfree(p); /* free if detoasted */
+
+			/* TODO: error message */
+			if (mrb_symbol(result) != mrb_intern_cstr(mrb, "XML_SUCCESS"))
+				elog(ERROR, "fail to parse xml");
+
+			if (mrb->exc)
+				ereport_exception(mrb);
+
+			return doc;
+		}
 #if PG_VERSION_NUM >= 90200
 		case JSONOID:
 		{
@@ -248,7 +282,7 @@ scalar_datum_to_mrb_value(mrb_state *mrb, Datum datum, bool isnull, plmruby_type
 
 			/* TODO: json_class should be cached? */
 			mrb_value json_class = mrb_obj_value(mrb_class_get(mrb, "JSON"));
-			mrb_value json_str = mrb_str_new(mrb, str, len);
+			mrb_value json_str = to_mrb_string(mrb, str, len);
 
 			mrb_value result = mrb_funcall(mrb, json_class, "parse", 1, json_str);
 
@@ -376,9 +410,6 @@ to_mrb_string_encoding(mrb_state *mrb, const char *str, size_t len, int encoding
 	else
 	{
 		char *utf8;
-
-		if (len < 0)
-			len = strlen(str);
 
 		utf8 = (char *) pg_do_encoding_conversion(
 				(unsigned char *) str, (int) len, encoding, PG_UTF8);
@@ -511,14 +542,26 @@ mrb_value_to_scalar_datum(mrb_state *mrb, mrb_value value, bool *isnull, plmruby
 		case TEXTOID:
 		case VARCHAROID:
 		case BPCHAROID:
-		case XMLOID:
 		{
 			if (mrb_string_p(value))
 			{
-				size_t len = (size_t) RSTRING_LEN(value);
-				char *str = palloc(len + 1);
-				strlcpy(str, RSTRING_PTR(value), len + 1);
-				return CStringGetTextDatum(str);
+				return mrb_string_to_text_datum(value);
+			}
+			break;
+		}
+		case XMLOID:
+		{
+			/* TODO: should be cached? */
+			struct RClass *xml_module = mrb_module_get(mrb, "TineXML2");
+			struct RClass *xml_document_class = mrb_class_get_under(mrb, xml_module, "XMLDocument");
+			if (mrb_obj_is_kind_of(mrb, value, xml_document_class))
+			{
+				mrb_value xml_str = mrb_funcall(mrb, value, "print", 0);
+				return mrb_string_to_text_datum(xml_str);
+			}
+			else if (mrb_string_p(value))
+			{
+				return mrb_string_to_text_datum(value);
 			}
 			break;
 		}
@@ -528,10 +571,7 @@ mrb_value_to_scalar_datum(mrb_state *mrb, mrb_value value, bool *isnull, plmruby
 			{
 				mrb_value json_class = mrb_obj_value(mrb_class_get(mrb, "JSON"));
 				mrb_value result = mrb_funcall(mrb, json_class, "stringify", 1, value);
-				size_t len = (size_t) RSTRING_LEN(value);
-				char *str = palloc(len + 1);
-				strlcpy(str, RSTRING_PTR(value), len + 1);
-				return CStringGetTextDatum(str);
+				return mrb_string_to_text_datum(result);
 			}
 			break;
 #endif
@@ -539,8 +579,8 @@ mrb_value_to_scalar_datum(mrb_state *mrb, mrb_value value, bool *isnull, plmruby
 			break;
 	}
 
-	CString str(value);
 	Datum result;
+	char *str = mrb_str_to_cstr_palloc(mrb_funcall(mrb, value, "to_s", 0));
 
 	if (type->fn_input.fn_addr == NULL)
 	{
@@ -552,5 +592,44 @@ mrb_value_to_scalar_datum(mrb_state *mrb, mrb_value value, bool *isnull, plmruby
 	result = InputFunctionCall(&type->fn_input, str, type->ioparam, -1);
 
 	return result;
+}
 
+static Datum
+mrb_value_to_record_datum(mrb_state *mrb, mrb_value value, bool *isnull, plmruby_type *type)
+{
+	Datum		result;
+	TupleDesc	tupdesc;
+
+	if (mrb_nil_p(value) || mrb_undef_p(value))
+	{
+		*isnull = true;
+		return (Datum) 0;
+	}
+
+	tupdesc = lookup_rowtype_tupdesc(type->typid, -1);
+
+	tuple_converter *converter = new_tuple_converter(mrb, tupdesc);
+
+	result = mrb_value_to_tuple_datum(converter, value, NULL);
+
+	ReleaseTupleDesc(tupdesc);
+	delete_tuple_converter(converter);
+
+	*isnull = false;
+	return result;
+}
+
+static char *
+mrb_str_to_cstr_palloc(mrb_value mrb_str)
+{
+	size_t len = (size_t) RSTRING_LEN(mrb_str);
+	char *str = palloc(len + 1);
+	strlcpy(str, RSTRING_PTR(mrb_str), len + 1);
+	return str;
+}
+
+static Datum
+mrb_string_to_text_datum(mrb_value mrb_str)
+{
+	return CStringGetTextDatum(mrb_str_to_cstr_palloc(mrb_str));
 }

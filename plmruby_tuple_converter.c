@@ -1,3 +1,4 @@
+#include <postgres.h>
 #include <access/htup_details.h>
 #include <utils/memutils.h>
 
@@ -72,7 +73,8 @@ tuple_to_mrb_value(tuple_converter *converter, HeapTuple tuple)
 
 		datum = heap_getattr(tuple, c + 1, converter->tupdesc, &isnull);
 
-		mrb_hash_set(converter->mrb, hash, converter->colnames[c], datum_to_mrb_value(mrb, datum, isnull, &converter->coltypes[c]));
+		mrb_hash_set(converter->mrb, hash, converter->colnames[c],
+					 datum_to_mrb_value(mrb, datum, isnull, &converter->coltypes[c]));
 	}
 
 	return hash;
@@ -87,7 +89,7 @@ mrb_value_to_tuple_datum(tuple_converter *converter, mrb_value value, Tuplestore
 	int natts = tupdesc->natts;
 
 	if (!converter->is_scalar && !mrb_hash_p(value))
-			elog(ERROR, "argument must be hash");
+		elog(ERROR, "argument must be hash");
 
 	Datum *values = (Datum *) palloc(sizeof(Datum) * natts);
 	bool *nulls = (bool *) palloc(sizeof(bool) * natts);

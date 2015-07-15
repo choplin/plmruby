@@ -15,7 +15,6 @@ typedef struct {
 	char proname[NAMEDATALEN];
 	char *prosrc;
 
-	char *class_name;
 	struct RClass *proc_class;
 
 	TransactionId fn_xmin;

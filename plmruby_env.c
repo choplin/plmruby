@@ -1,3 +1,10 @@
+#include <postgres.h>
+#include <miscadmin.h>
+#include <utils/memutils.h>
+
+#include <mruby.h>
+#include <mruby/string.h>
+
 #include "plmruby_env.h"
 
 #define INITIAL_LEN 16
@@ -26,13 +33,14 @@ init_plmruby_env_cache(void)
 	envs = MemoryContextAlloc(TopMemoryContext, sizeof(env_entry) * envs_max_len);
 }
 
-plmruby_exec_env *
-get_plmruby_exe_env()
+plmruby_global_env*
+get_plmruby_global_env(void)
 {
 	Oid user_id = GetUserId();
-	for (int i = 0; i < envs_len; ++i) {
+	for (int i = 0; i < envs_len; ++i)
+	{
 		if (envs[i].user_id == user_id)
-			return envs[i]->env;
+			return envs[i].env;
 	}
 
 	plmruby_global_env *env = new_env();
@@ -44,7 +52,7 @@ plmruby_exec_env *
 create_plmruby_exec_env(struct RClass *proc_class)
 {
 	plmruby_global_env *env = get_plmruby_global_env();
-	plmruby_exec_env *xenv = (plv8_mruby_env *) MemoryContextAllocZero(TopTransactionContext, sizeof(plmruby_exec_env));
+	plmruby_exec_env *xenv = (plmruby_exec_env *) MemoryContextAllocZero(TopTransactionContext, sizeof(plmruby_exec_env));
 
 	xenv->ai = mrb_gc_arena_save(env->mrb);
 	xenv->mrb = env->mrb;
@@ -63,7 +71,8 @@ cleanup_plmruby_exec_env(void)
 {
 	plmruby_exec_env *xenv = exec_env_head;
 
-	while (xenv != NULL) {
+	while (xenv != NULL)
+	{
 		mrb_gc_arena_restore(xenv->mrb, xenv->ai);
 		xenv = xenv->next;
 	}
@@ -75,14 +84,15 @@ new_env(void)
 {
 	plmruby_global_env *env = MemoryContextAlloc(TopMemoryContext, sizeof(plmruby_global_env));
 	env->mrb = mrb_open();
-	env->cxt = mrbc_context_new(mrb);
+	env->cxt = mrbc_context_new(env->mrb);
 	return env;
 }
 
 static void
 extend_envs(int new_len)
 {
-	if (new_len == envs_max_len) {
+	if (new_len == envs_max_len)
+	{
 		envs_max_len = envs_max_len * 2;
 		MemoryContext old_context = MemoryContextSwitchTo(TopMemoryContext);
 		repalloc(envs, sizeof(env_entry) * envs_max_len);

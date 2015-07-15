@@ -27,5 +27,4 @@ Datum
 		mrb_value_to_datum(mrb_state *mrb, mrb_value value, bool *isnull, plmruby_type *type);
 
 
-
 #endif /* __PLMRUBY_TYPE_H__ */

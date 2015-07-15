@@ -33,7 +33,7 @@ void
 		init_plmruby_env_cache(void);
 
 plmruby_global_env *
-		get_plmruby_global_env();
+		get_plmruby_global_env(void);
 
 plmruby_exec_env *
 		create_plmruby_exec_env(struct RClass *proc_class);

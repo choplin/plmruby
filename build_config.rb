@@ -32,8 +32,6 @@ MRuby::Build.new do |conf|
   conf.gem :core => 'mruby-time'
   conf.gem :core => 'mruby-toplevel-ext'
 
-  conf.gem :core => 'mruby-bin-mruby-config'
-
   conf.gem 'deps/mruby-io'
   conf.gem 'deps/mruby-env'
   conf.gem 'deps/mruby-dir'
@@ -44,6 +42,8 @@ MRuby::Build.new do |conf|
   conf.gem 'deps/mruby-onig-regexp'
   conf.gem 'deps/mruby-uname'
 
+  conf.gem 'mrbgems/plmruby'
+
   conf.cc.include_paths += ENV['MRUBY_PG_INCLUDE_DIR'].split("\s")
-  conf.cc.option_define = '-DMRB_INT64'
+  conf.cc.defines = ENV['MRUBY_DEFINES'].split("\s")
 end
