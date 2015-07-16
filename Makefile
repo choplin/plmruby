@@ -18,7 +18,7 @@ EXTENSION := plmruby
 EXTVERSION := 0.0.1
 DATA := plmruby--$(EXTVERSION).sql
 
-REGRESS = init-extension plmruby
+REGRESS = init-extension plmruby inline
 
 # strip " from library directory options
 SHLIB_LINK += $(subst \",,$(MRUBY_LDFLAGS_BEFORE_LIBS)) $(MRUBY_LIBS) $(subst \",,$(MRUBY_LDFLAGS))

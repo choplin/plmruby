@@ -5,4 +5,6 @@
 
 Datum plmruby_call_handler(PG_FUNCTION_ARGS);
 
+Datum plmruby_inline_handler(PG_FUNCTION_ARGS);
+
 #endif /* __PLMRUBY_H__ */
