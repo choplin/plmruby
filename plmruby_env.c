@@ -85,6 +85,7 @@ new_env(void)
 	plmruby_global_env *env = MemoryContextAlloc(TopMemoryContext, sizeof(plmruby_global_env));
 	env->mrb = mrb_open();
 	env->cxt = mrbc_context_new(env->mrb);
+	env->cxt->capture_errors = TRUE;
 	return env;
 }
 
