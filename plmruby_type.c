@@ -20,13 +20,13 @@
 #define JDATE_OFFSET (POSTGRES_EPOCH_JDATE - UNIX_EPOCH_JDATE)
 
 static mrb_value
-		array_datum_to_mrb_value(mrb_state *mrb, Datum datum, bool isnull, plmruby_type *type);
+		array_datum_to_mrb_value(mrb_state *mrb, Datum datum, plmruby_type *type);
 
 static mrb_value
-		record_datum_to_mrb_value(mrb_state *mrb, Datum datum, bool isnull, plmruby_type *type);
+		record_datum_to_mrb_value(mrb_state *mrb, Datum datum);
 
 static mrb_value
-		scalar_datum_to_mrb_value(mrb_state *mrb, Datum datum, bool isnull, plmruby_type *type);
+		scalar_datum_to_mrb_value(mrb_state *mrb, Datum datum, plmruby_type *type);
 
 static Datum
 		mrb_value_to_array_datum(mrb_state *mrb, mrb_value value, bool *isnull, plmruby_type *type);
@@ -100,11 +100,11 @@ datum_to_mrb_value(mrb_state *mrb, Datum datum, bool isnull, plmruby_type *type)
 	if (isnull)
 		return mrb_nil_value();
 	else if (type->category == TYPCATEGORY_ARRAY || type->typid == RECORDARRAYOID)
-		return array_datum_to_mrb_value(mrb, datum, isnull, type);
+		return array_datum_to_mrb_value(mrb, datum, type);
 	else if (type->category == TYPCATEGORY_COMPOSITE || type->typid == RECORDOID)
-		return record_datum_to_mrb_value(mrb, datum, isnull, type);
+		return record_datum_to_mrb_value(mrb, datum);
 	else
-		return scalar_datum_to_mrb_value(mrb, datum, isnull, type);
+		return scalar_datum_to_mrb_value(mrb, datum, type);
 }
 
 Datum
@@ -117,7 +117,7 @@ mrb_value_to_datum(mrb_state *mrb, mrb_value value, bool *isnull, plmruby_type *
 }
 
 mrb_value
-array_datum_to_mrb_value(mrb_state *mrb, Datum datum, bool isnull, plmruby_type *type)
+array_datum_to_mrb_value(mrb_state *mrb, Datum datum, plmruby_type *type)
 {
 	Datum *values;
 	bool *nulls;
@@ -148,7 +148,7 @@ array_datum_to_mrb_value(mrb_state *mrb, Datum datum, bool isnull, plmruby_type 
 }
 
 mrb_value
-record_datum_to_mrb_value(mrb_state *mrb, Datum datum, bool isnull, plmruby_type *type)
+record_datum_to_mrb_value(mrb_state *mrb, Datum datum)
 {
 	HeapTupleHeader rec = DatumGetHeapTupleHeader(datum);
 	Oid tupType;
@@ -179,7 +179,7 @@ record_datum_to_mrb_value(mrb_state *mrb, Datum datum, bool isnull, plmruby_type
 
 
 static mrb_value
-scalar_datum_to_mrb_value(mrb_state *mrb, Datum datum, bool isnull, plmruby_type *type)
+scalar_datum_to_mrb_value(mrb_state *mrb, Datum datum, plmruby_type *type)
 {
 	switch (type->typid)
 	{
