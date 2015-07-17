@@ -5,7 +5,6 @@
 #include <mruby.h>
 #include <mruby/array.h>
 #include <mruby/hash.h>
-#include <mruby/string.h>
 #include <funcapi.h>
 
 #include "plmruby_type.h"
@@ -35,7 +34,8 @@ new_tuple_converter(mrb_state *mrb, TupleDesc tupdesc)
 		if (tupdesc->attrs[i]->attisdropped)
 			continue;
 
-		converter->colnames[i] = mrb_str_new_cstr(mrb, NameStr(tupdesc->attrs[i]->attname));
+		converter->colnames[i] = mrb_symbol_value(mrb_intern_cstr(
+				mrb, NameStr(tupdesc->attrs[i]->attname)));
 
 		plmruby_fill_type(&converter->coltypes[i],
 						  tupdesc->attrs[i]->atttypid,
@@ -107,7 +107,7 @@ mrb_value_to_tuple_datum(tuple_converter *converter, mrb_value value, Tuplestore
 			for (int j = 0; j < tupdesc->natts; ++j)
 			{
 				mrb_value key = mrb_ary_ref(mrb, keys, j);
-				if (mrb_str_equal(mrb, colname, key))
+				if (mrb_eql(mrb, colname, key))
 				{
 					found = true;
 					break;
