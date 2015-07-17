@@ -8,7 +8,6 @@
 #include <mruby.h>
 #include <mruby/array.h>
 #include <mruby/class.h>
-#include <mruby/object.h>
 
 #include "plmruby_call.h"
 #include "plmruby_proc.h"

@@ -4,7 +4,6 @@
 #include <catalog/pg_proc.h>
 #include <catalog/pg_type.h>
 #include <access/xact.h>
-#include <lib/stringinfo.h>
 
 #include <mruby.h>
 #include <mruby/proc.h>

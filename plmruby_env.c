@@ -3,7 +3,6 @@
 #include <utils/memutils.h>
 
 #include <mruby.h>
-#include <mruby/string.h>
 
 #include "plmruby_env.h"
 
