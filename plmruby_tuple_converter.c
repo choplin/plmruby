@@ -30,15 +30,15 @@ new_tuple_converter(mrb_state *mrb, TupleDesc tupdesc)
 	converter->coltypes = palloc(sizeof(plmruby_type));
 	MemoryContextSwitchTo(old_context);
 
-	for (int c = 0; c < tupdesc->natts; ++c)
+	for (int i = 0; i < tupdesc->natts; ++i)
 	{
-		if (tupdesc->attrs[c]->attisdropped)
+		if (tupdesc->attrs[i]->attisdropped)
 			continue;
 
-		converter->colnames[c] = mrb_str_new_cstr(mrb, NameStr(tupdesc->attrs[c]->attname));
+		converter->colnames[i] = mrb_str_new_cstr(mrb, NameStr(tupdesc->attrs[i]->attname));
 
-		plmruby_fill_type(&converter->coltypes[c],
-						  tupdesc->attrs[c]->atttypid,
+		plmruby_fill_type(&converter->coltypes[i],
+						  tupdesc->attrs[i]->atttypid,
 						  converter->memcontext);
 	}
 	return converter;
@@ -62,18 +62,18 @@ tuple_to_mrb_value(tuple_converter *converter, HeapTuple tuple)
 	int natts = converter->tupdesc->natts;
 	mrb_value hash = mrb_hash_new_capa(converter->mrb, natts);
 
-	for (int c = 0; c < natts; c++)
+	for (int i = 0; i < natts; ++i)
 	{
 		Datum datum;
 		bool isnull;
 
-		if (converter->tupdesc->attrs[c]->attisdropped)
+		if (converter->tupdesc->attrs[i]->attisdropped)
 			continue;
 
-		datum = heap_getattr(tuple, c + 1, converter->tupdesc, &isnull);
+		datum = heap_getattr(tuple, i + 1, converter->tupdesc, &isnull);
 
-		mrb_hash_set(converter->mrb, hash, converter->colnames[c],
-					 datum_to_mrb_value(mrb, datum, isnull, &converter->coltypes[c]));
+		mrb_hash_set(converter->mrb, hash, converter->colnames[i],
+					 datum_to_mrb_value(mrb, datum, isnull, &converter->coltypes[i]));
 	}
 
 	return hash;
@@ -97,16 +97,16 @@ mrb_value_to_tuple_datum(tuple_converter *converter, mrb_value value, Tuplestore
 	{
 		mrb_value keys = mrb_hash_keys(mrb, value);
 
-		for (int c = 0; c < natts; ++c)
+		for (int i = 0; i < natts; ++i)
 		{
-			if (tupdesc->attrs[c]->attisdropped)
+			if (tupdesc->attrs[i]->attisdropped)
 				continue;
 
 			bool found = false;
-			mrb_value colname = converter->colnames[c];
-			for (int d = 0; d < tupdesc->natts; ++d)
+			mrb_value colname = converter->colnames[i];
+			for (int j = 0; j < tupdesc->natts; ++j)
 			{
-				mrb_value key = mrb_ary_ref(mrb, keys, d);
+				mrb_value key = mrb_ary_ref(mrb, keys, j);
 				if (mrb_str_equal(mrb, colname, key))
 				{
 					found = true;
@@ -118,20 +118,20 @@ mrb_value_to_tuple_datum(tuple_converter *converter, mrb_value value, Tuplestore
 		}
 	}
 
-	for (int c = 0; c < natts; ++c)
+	for (int i = 0; i < natts; ++i)
 	{
 		/* Make sure dropped columns are skipped by backend code. */
-		if (tupdesc->attrs[c]->attisdropped)
+		if (tupdesc->attrs[i]->attisdropped)
 		{
-			nulls[c] = true;
+			nulls[i] = true;
 			continue;
 		}
 
-		mrb_value attr = is_scalar ? value : mrb_hash_get(mrb, value, converter->colnames[c]);
+		mrb_value attr = is_scalar ? value : mrb_hash_get(mrb, value, converter->colnames[i]);
 		if (mrb_nil_p(attr) || mrb_undef_p(attr))
-			nulls[c] = true;
+			nulls[i] = true;
 		else
-			values[c] = mrb_value_to_datum(mrb, attr, &nulls[c], &converter->coltypes[c]);
+			values[i] = mrb_value_to_datum(mrb, attr, &nulls[i], &converter->coltypes[i]);
 	}
 
 	if (tupstore)
