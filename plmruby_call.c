@@ -54,10 +54,6 @@ call_set_returning_function(FunctionCallInfo fcinfo, plmruby_exec_env *xenv,
 	if (mrb->exc)
 		ereport_exception(mrb);
 
-	/* TODO: should be cached? */
-	struct RClass *enumerator_class = mrb_class_get(mrb, "Enumerator");
-	struct RClass *stop_iteration_class = mrb_class_get(mrb, "StopIteration");
-
 	/*
 	 * Accept Enumerator or any object which has each method.
 	 * Since Enumerator has also each, it checks only for each method here.
@@ -88,7 +84,7 @@ call_set_returning_function(FunctionCallInfo fcinfo, plmruby_exec_env *xenv,
 	else
 	{
 		mrb_value enumerator;
-		if (mrb_obj_is_instance_of(mrb, result, enumerator_class))
+		if (mrb_obj_is_instance_of(mrb, result, ENUMERATOR_CLASS))
 			enumerator = result;
 		else /* Enumerable */
 			enumerator = mrb_funcall(mrb, result, "to_enum", 0);
@@ -98,7 +94,7 @@ call_set_returning_function(FunctionCallInfo fcinfo, plmruby_exec_env *xenv,
 			mrb_value next = mrb_funcall(mrb, enumerator, "next", 0);
 			if (mrb->exc)
 			{
-				if (mrb->exc->c == stop_iteration_class)
+				if (mrb->exc->c == E_STOP_ITERATION)
 					break;
 				else
 					ereport_exception(mrb);

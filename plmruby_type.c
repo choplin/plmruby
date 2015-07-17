@@ -221,7 +221,6 @@ scalar_datum_to_mrb_value(mrb_state *mrb, Datum datum, plmruby_type *type)
 		case TIMESTAMPOID:
 		case TIMESTAMPTZOID:
 		{
-			/* TODO: should be cached? */
 			int64 epoch = timestamptz_to_epoch_us(DatumGetTimestampTz(datum));
 			mrb_value result = epoch_us_to_mrb_time(mrb, epoch);
 			if (mrb->exc)
@@ -252,10 +251,7 @@ scalar_datum_to_mrb_value(mrb_state *mrb, Datum datum, plmruby_type *type)
 
 			mrb_value xml_str = to_mrb_string(mrb, str, len);
 
-			/* TODO: should be cached? */
-			struct RClass *xml_module = mrb_module_get(mrb, "TineXML2");
-			struct RClass *xml_document_class = mrb_class_get_under(mrb, xml_module, "XMLDocument");
-			mrb_value doc = mrb_obj_new(mrb, xml_document_class, 0, NULL);
+			mrb_value doc = mrb_obj_new(mrb, XML_DOCUMENT_CLASS, 0, NULL);
 
 			mrb_value result = mrb_funcall(mrb, doc, "parse", 1, xml_str);
 
@@ -278,8 +274,7 @@ scalar_datum_to_mrb_value(mrb_state *mrb, Datum datum, plmruby_type *type)
 			const char *str = VARDATA_ANY(p);
 			size_t len = VARSIZE_ANY_EXHDR(p);
 
-			/* TODO: json_class should be cached? */
-			mrb_value json_class = mrb_obj_value(mrb_class_get(mrb, "JSON"));
+			mrb_value json_class = mrb_obj_value(JSON_CLASS);
 			mrb_value json_str = to_mrb_string(mrb, str, len);
 
 			mrb_value result = mrb_funcall(mrb, json_class, "parse", 1, json_str);
@@ -324,11 +319,9 @@ date_to_epoch_us(DateADT date)
 static mrb_value
 epoch_us_to_mrb_time(mrb_state *mrb, int64 epoch)
 {
-	/* TODO: time_class should be cached? */
-	mrb_value time_class = mrb_obj_value(mrb_class_get(mrb, "Time"));
 	mrb_value sec = mrb_float_value(mrb, epoch / USECS_PER_SEC);
 	mrb_value usec = mrb_float_value(mrb, epoch % USECS_PER_SEC);
-	return mrb_funcall(mrb, time_class, "at", 2, sec, usec);
+	return mrb_funcall(mrb, mrb_obj_value(TIME_CLASS), "at", 2, sec, usec);
 }
 
 static int64
@@ -516,9 +509,7 @@ mrb_value_to_scalar_datum(mrb_state *mrb, mrb_value value, bool *isnull, plmruby
 			break;
 		case DATEOID:
 		{
-			/* TODO: should be cached? */
-			struct RClass *time_class = mrb_class_get(mrb, "Time");
-			if (mrb_obj_is_instance_of(mrb, value, time_class))
+			if (mrb_obj_is_instance_of(mrb, value, TIME_CLASS))
 			{
 				int64 epoch = mrb_time_to_epoch_us(mrb, value);
 				return epoch_us_to_date(epoch);
@@ -528,9 +519,7 @@ mrb_value_to_scalar_datum(mrb_state *mrb, mrb_value value, bool *isnull, plmruby
 		case TIMESTAMPOID:
 		case TIMESTAMPTZOID:
 		{
-			/* TODO: should be cached? */
-			struct RClass *time_class = mrb_class_get(mrb, "Time");
-			if (mrb_obj_is_instance_of(mrb, value, time_class))
+			if (mrb_obj_is_instance_of(mrb, value, TIME_CLASS))
 			{
 				int64 epoch = mrb_time_to_epoch_us(mrb, value);
 				return epoch_us_to_timestamptz(epoch);
@@ -549,10 +538,7 @@ mrb_value_to_scalar_datum(mrb_state *mrb, mrb_value value, bool *isnull, plmruby
 		}
 		case XMLOID:
 		{
-			/* TODO: should be cached? */
-			struct RClass *xml_module = mrb_module_get(mrb, "TineXML2");
-			struct RClass *xml_document_class = mrb_class_get_under(mrb, xml_module, "XMLDocument");
-			if (mrb_obj_is_kind_of(mrb, value, xml_document_class))
+			if (mrb_obj_is_kind_of(mrb, value, XML_DOCUMENT_CLASS))
 			{
 				mrb_value xml_str = mrb_funcall(mrb, value, "print", 0);
 				return mrb_string_to_text_datum(xml_str);

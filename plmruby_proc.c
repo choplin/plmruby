@@ -137,7 +137,6 @@ get_proc_cache(Oid fn_oid, bool validate, bool is_trigger)
 	cache->fn_tid = procTup->t_self;
 	cache->user_id = GetUserId();
 
-	/* TODO: memory context */
 	int nargs = get_func_arg_info(procTup, &argtypes, &argnames, &argmodes);
 
 	if (validate)
