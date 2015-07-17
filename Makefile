@@ -12,13 +12,14 @@ MRUBY_DEFINES = MRB_INT64
 
 # extension
 MODULE_big := plmruby
-OBJS := plmruby.o plmruby_env.o plmruby_proc.o plmruby_tuple_converter.o plmruby_type.o plmruby_util.o
+OBJS := plmruby.o plmruby_env.o plmruby_proc.o plmruby_tuple_converter.o plmruby_type.o plmruby_util.o plmruby_call.o
 
 EXTENSION := plmruby
 EXTVERSION := 0.0.1
 DATA := plmruby--$(EXTVERSION).sql
 
-REGRESS = init-extension plmruby inline
+REGRESS_FILES := $(wildcard sql/*.sql)
+REGRESS = $(subst sql/,,$(subst .sql,,$(REGRESS_FILES)))
 
 # strip " from library directory options
 SHLIB_LINK += $(subst \",,$(MRUBY_LDFLAGS_BEFORE_LIBS)) $(MRUBY_LIBS) $(subst \",,$(MRUBY_LDFLAGS))

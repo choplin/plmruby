@@ -9,12 +9,14 @@
 #include <mruby/proc.h>
 
 #include "plmruby.h"
+#include "plmruby_call.h"
 #include "plmruby_proc.h"
 #include "plmruby_util.h"
 
 PG_MODULE_MAGIC;
 
 PG_FUNCTION_INFO_V1(plmruby_call_handler);
+
 PG_FUNCTION_INFO_V1(plmruby_inline_handler);
 
 void _PG_init(void);
@@ -24,17 +26,6 @@ plmruby_xact_cb(XactEvent event, void *arg)
 {
 	cleanup_plmruby_exec_env();
 }
-
-static Datum
-		call_trigger(PG_FUNCTION_ARGS, plmruby_exec_env *xenv);
-
-static Datum
-		call_set_returning_function(PG_FUNCTION_ARGS, plmruby_exec_env *xenv,
-									int nargs, plmruby_type argtypes[], plmruby_type *rettype);
-
-static Datum
-		call_function(PG_FUNCTION_ARGS, plmruby_exec_env *xenv,
-					  int nargs, plmruby_type argtypes[], plmruby_type *rettype);
 
 Datum
 plmruby_call_handler(PG_FUNCTION_ARGS)
@@ -55,7 +46,7 @@ plmruby_call_handler(PG_FUNCTION_ARGS)
 	if (is_trigger)
 		return call_trigger(fcinfo, proc->xenv);
 	else if (cache->retset)
-		return call_set_returning_function(fcinfo, proc->xenv, cache->nargs, proc->argtypes, &proc->rettype);
+		return call_set_returning_function(fcinfo, proc->xenv, cache->nargs, proc->argtypes);
 	else
 		return call_function(fcinfo, proc->xenv, cache->nargs, proc->argtypes, &proc->rettype);
 
@@ -69,7 +60,7 @@ plmruby_inline_handler(PG_FUNCTION_ARGS)
 
 	Assert(IsA(codeblock, InlineCodeBlock));
 
-	char * source_text = codeblock->source_text;
+	char *source_text = codeblock->source_text;
 
 	plmruby_global_env *env = get_plmruby_global_env();
 	mrb_state *mrb = env->mrb;
@@ -105,39 +96,4 @@ _PG_init(void)
 	init_proc_cache_hash();
 
 	RegisterXactCallback(plmruby_xact_cb, NULL);
-}
-
-static Datum
-call_trigger(FunctionCallInfo fcinfo, plmruby_exec_env *xenv)
-{
-	return (Datum) 0;
-}
-
-
-static Datum
-call_set_returning_function(FunctionCallInfo fcinfo, plmruby_exec_env *xenv,
-							int nargs, plmruby_type argtypes[], plmruby_type *rettype)
-{
-	return (Datum) 0;
-}
-
-
-static Datum
-call_function(FunctionCallInfo fcinfo, plmruby_exec_env *xenv,
-			  int nargs, plmruby_type argtypes[], plmruby_type *rettype)
-{
-	elog(DEBUG1, "call function");
-	mrb_value argv[FUNC_MAX_ARGS];
-	for (int i = 0; i < nargs; ++i)
-		argv[i] = datum_to_mrb_value(xenv->mrb, fcinfo->arg[i], fcinfo->argnull[i], &argtypes[i]);
-
-	mrb_value result = mrb_funcall_with_block(xenv->mrb, xenv->proc, xenv->mid, nargs, argv, xenv->nil);
-	/* TODO: error message */
-	if (xenv->mrb->exc)
-		ereport_exception(xenv->mrb);
-
-	if(rettype != NULL)
-		return mrb_value_to_datum(xenv->mrb, result, &fcinfo->isnull, rettype);
-	else
-		PG_RETURN_VOID();
 }

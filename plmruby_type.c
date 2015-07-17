@@ -76,9 +76,7 @@ plmruby_fill_type(plmruby_type *type, Oid typid, MemoryContext mcxt)
 	bool ispreferred;
 
 	if (!mcxt)
-	{
 		mcxt = CurrentMemoryContext;
-	}
 
 	type->typid = typid;
 	type->fn_input.fn_mcxt = type->fn_output.fn_mcxt = mcxt;
@@ -610,7 +608,7 @@ mrb_value_to_record_datum(mrb_state *mrb, mrb_value value, bool *isnull, plmruby
 
 	tuple_converter *converter = new_tuple_converter(mrb, tupdesc);
 
-	result = mrb_value_to_tuple_datum(converter, value, NULL);
+	result = mrb_value_to_tuple_datum(converter, value, NULL, false);
 
 	ReleaseTupleDesc(tupdesc);
 	delete_tuple_converter(converter);

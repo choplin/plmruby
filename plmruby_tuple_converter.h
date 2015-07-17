@@ -12,7 +12,6 @@ typedef struct {
 	TupleDesc tupdesc;
 	mrb_value *colnames;
 	plmruby_type *coltypes;
-	bool is_scalar;
 	MemoryContext memcontext;
 } tuple_converter;
 
@@ -26,6 +25,7 @@ mrb_value
 		tuple_to_mrb_value(tuple_converter *converter, HeapTuple tuple);
 
 Datum
-		mrb_value_to_tuple_datum(tuple_converter *converter, mrb_value value, Tuplestorestate *tupstore);
+		mrb_value_to_tuple_datum(tuple_converter *converter, mrb_value value,
+								 Tuplestorestate *tupstore, bool is_scalar);
 
 #endif /* __PLMRUBY_TUPLE_CONVERTER_H__ */

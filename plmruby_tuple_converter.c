@@ -29,8 +29,6 @@ new_tuple_converter(mrb_state *mrb, TupleDesc tupdesc)
 	converter->coltypes = palloc(sizeof(plmruby_type));
 	MemoryContextSwitchTo(old_context);
 
-	converter->is_scalar = false;
-
 	for (int c = 0; c < tupdesc->natts; ++c)
 	{
 		if (tupdesc->attrs[c]->attisdropped)
@@ -81,20 +79,20 @@ tuple_to_mrb_value(tuple_converter *converter, HeapTuple tuple)
 }
 
 Datum
-mrb_value_to_tuple_datum(tuple_converter *converter, mrb_value value, Tuplestorestate *tupstore)
+mrb_value_to_tuple_datum(tuple_converter *converter, mrb_value value, Tuplestorestate *tupstore, bool is_scalar)
 {
 	Datum result;
 	mrb_state *mrb = converter->mrb;
 	TupleDesc tupdesc = converter->tupdesc;
 	int natts = tupdesc->natts;
 
-	if (!converter->is_scalar && !mrb_hash_p(value))
+	if (!is_scalar && !mrb_hash_p(value))
 		elog(ERROR, "argument must be hash");
 
 	Datum *values = (Datum *) palloc(sizeof(Datum) * natts);
 	bool *nulls = (bool *) palloc(sizeof(bool) * natts);
 
-	if (!converter->is_scalar)
+	if (!is_scalar)
 	{
 		mrb_value keys = mrb_hash_keys(mrb, value);
 
@@ -128,7 +126,7 @@ mrb_value_to_tuple_datum(tuple_converter *converter, mrb_value value, Tuplestore
 			continue;
 		}
 
-		mrb_value attr = converter->is_scalar ? value : mrb_hash_get(mrb, value, converter->colnames[c]);
+		mrb_value attr = is_scalar ? value : mrb_hash_get(mrb, value, converter->colnames[c]);
 		if (mrb_nil_p(attr) || mrb_undef_p(attr))
 			nulls[c] = true;
 		else
