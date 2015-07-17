@@ -15,6 +15,7 @@ tuple_converter *
 new_tuple_converter(mrb_state *mrb, TupleDesc tupdesc)
 {
 	tuple_converter *converter = palloc(sizeof(tuple_converter));
+	converter->mrb = mrb;
 	converter->tupdesc = tupdesc;
 
 	converter->memcontext = AllocSetContextCreate(
