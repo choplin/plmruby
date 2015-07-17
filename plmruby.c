@@ -4,6 +4,7 @@
 #include <catalog/pg_proc.h>
 #include <catalog/pg_type.h>
 #include <access/xact.h>
+#include <lib/stringinfo.h>
 
 #include <mruby.h>
 #include <mruby/proc.h>
@@ -66,24 +67,31 @@ plmruby_inline_handler(PG_FUNCTION_ARGS)
 	mrb_state *mrb = env->mrb;
 	int ai = mrb_gc_arena_save(mrb);
 
-	mrbc_context *cxt = mrbc_context_new(mrb);
-	cxt->capture_errors = TRUE;
-	cxt->no_exec = TRUE;
-
-	mrb_value proc = mrb_load_string_cxt(mrb, source_text, cxt);
+	StringInfoData src;
+	initStringInfo(&src);
+	appendStringInfo(&src, "Class.new do; def call; %s; end; end", source_text);
+	mrb_value proc = mrb_load_string_cxt(mrb, src.data, env->cxt);
 	if (mrb->exc != NULL)
 	{
+		pfree(src.data);
 		mrb_gc_arena_restore(mrb, ai);
 		ereport_exception(mrb);
 	}
+	pfree(src.data);
 
-	mrb_value receiver = mrb_obj_new(mrb, mrb->object_class, 0, NULL);
-	mrb_run(mrb, mrb_proc_ptr(proc), receiver);
-	if (mrb->exc != NULL)
+	PG_TRY();
+	{
+		plmruby_exec_env *xenv = create_plmruby_exec_env((struct RClass*) mrb_obj_ptr(proc));
+		call_mruby_function(fcinfo, xenv, 0, NULL);
+		if (mrb->exc != NULL)
+			ereport_exception(mrb);
+	}
+	PG_CATCH();
 	{
 		mrb_gc_arena_restore(mrb, ai);
-		ereport_exception(mrb);
+		PG_RE_THROW();
 	}
+	PG_END_TRY();
 
 	mrb_gc_arena_restore(mrb, ai);
 	PG_RETURN_VOID();

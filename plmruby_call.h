@@ -18,5 +18,8 @@ Datum
 		call_function(PG_FUNCTION_ARGS, plmruby_exec_env *xenv,
 					  int nargs, plmruby_type argtypes[], plmruby_type *rettype);
 
+mrb_value
+		call_mruby_function(FunctionCallInfo fcinfo, plmruby_exec_env *xenv,
+							int nargs, plmruby_type argtypes[]);
 
 #endif /* __PLMRUBY_CALL_H__ */

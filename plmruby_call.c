@@ -15,10 +15,6 @@
 #include "plmruby_tuple_converter.h"
 #include "plmruby_util.h"
 
-static mrb_value
-		call_mruby_function(FunctionCallInfo fcinfo, plmruby_exec_env *xenv,
-							int nargs, plmruby_type argtypes[]);
-
 Datum
 call_trigger(FunctionCallInfo fcinfo, plmruby_exec_env *xenv)
 {
@@ -133,7 +129,7 @@ call_function(FunctionCallInfo fcinfo, plmruby_exec_env *xenv,
 		PG_RETURN_VOID();
 }
 
-static mrb_value
+mrb_value
 call_mruby_function(FunctionCallInfo fcinfo, plmruby_exec_env *xenv,
 					int nargs, plmruby_type argtypes[])
 {
@@ -143,4 +139,3 @@ call_mruby_function(FunctionCallInfo fcinfo, plmruby_exec_env *xenv,
 
 	return mrb_funcall_with_block(xenv->mrb, xenv->proc, xenv->mid, nargs, argv, xenv->nil);
 }
-
