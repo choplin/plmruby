@@ -22,3 +22,4 @@ SELECT * FROM return_record(1, 'a');
 SELECT * FROM return_record(1, 'a') AS t(j integer, s text);
 SELECT * FROM return_record(1, 'a') AS t(x text, y text);
 
+DROP TYPE rec CASCADE;

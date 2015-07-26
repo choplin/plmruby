@@ -1,0 +1,107 @@
+CREATE TYPE rec AS (i integer, t text);
+CREATE FUNCTION set_of_records_array() RETURNS SETOF rec AS
+$$
+	[
+		{i: 1, t: "a"},
+		{i: 2, t: "b"},
+		{i: 3, t: "c"},
+	]
+$$
+LANGUAGE plmruby;
+SELECT * FROM set_of_records_array();
+ i | t 
+---+---
+ 1 | a
+ 2 | b
+ 3 | c
+(3 rows)
+
+CREATE FUNCTION set_of_records_enumerable() RETURNS SETOF rec AS
+$$
+	cls = Class.new do
+		ARY = [
+			{i: 1, t: "a"},
+			{i: 2, t: "b"},
+			{i: 3, t: "c"},
+		]
+		def each
+			ARY.each {|e| yield e}
+		end
+	end
+	cls.new
+$$
+LANGUAGE plmruby;
+SELECT * FROM set_of_records_enumerable();
+ i | t 
+---+---
+ 1 | a
+ 2 | b
+ 3 | c
+(3 rows)
+
+CREATE FUNCTION set_of_records_enumerator() RETURNS SETOF rec AS
+$$
+	Enumerator.new do |y|
+		ARY = [
+			{i: 1, t: "a"},
+			{i: 2, t: "b"},
+			{i: 3, t: "c"},
+		]
+		ARY.each {|e| y << e}
+	end
+$$
+LANGUAGE plmruby;
+SELECT * FROM set_of_records_enumerator();
+ERROR:  TypeError: exception object expected
+CREATE FUNCTION set_of_scalars() RETURNS SETOF integer AS
+$$
+	[1,2,3]
+$$
+LANGUAGE plmruby;
+SELECT * FROM set_of_scalars();
+ set_of_scalars 
+----------------
+              1
+              2
+              3
+(3 rows)
+
+CREATE FUNCTION set_of_unnamed_records() RETURNS SETOF record AS
+$$
+	[ {i: true} ]
+$$
+LANGUAGE plmruby;
+SELECT set_of_unnamed_records();
+ERROR:  function returning record called in context that cannot accept type record
+SELECT * FROM set_of_unnamed_records() t (i bool);
+ i 
+---
+ t
+(1 row)
+
+CREATE FUNCTION set_of_unnamed_records2() RETURNS SETOF record AS
+$$
+	[{a: 1, b: 2}]
+$$ LANGUAGE plmruby;
+-- not enough fields specified
+SELECT * FROM set_of_unnamed_records2() AS x(a int);
+ a 
+---
+ 1
+(1 row)
+
+-- field names mismatch
+SELECT * FROM set_of_unnamed_records2() AS x(a int, c int);
+ERROR:  field name / property name mismatch
+-- name counts and values match
+SELECT * FROM set_of_unnamed_records2() AS x(a int, b int);
+ a | b 
+---+---
+ 1 | 2
+(1 row)
+
+DROP TYPE rec CASCADE;
+NOTICE:  drop cascades to 3 other objects
+DETAIL:  drop cascades to function set_of_records_array()
+drop cascades to function set_of_records_enumerable()
+drop cascades to function set_of_records_enumerator()
