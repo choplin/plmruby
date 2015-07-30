@@ -1,0 +1,18 @@
+CREATE FUNCTION plmruby_raise() RETURNS int AS
+$$
+	raise 'foo'
+$$
+LANGUAGE plmruby IMMUTABLE STRICT;
+SELECT plmruby_raise();
+ERROR:  RuntimeError: foo
+CREATE FUNCTION plmruby_no_method_error() RETURNS int AS
+$$
+	'foo'.bar
+$$
+LANGUAGE plmruby IMMUTABLE STRICT;
+SELECT plmruby_no_method_error();
+ERROR:  NoMethodError: undefined method 'bar' for "foo"
+DO $$ raise 'foo' $$ LANGUAGE plmruby;
+ERROR:  RuntimeError: foo
+DO $$ 'foo'.bar $$ LANGUAGE plmruby;
+ERROR:  NoMethodError: undefined method 'bar' for "foo"
