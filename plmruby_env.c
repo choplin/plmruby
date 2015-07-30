@@ -106,9 +106,8 @@ append_env(plmruby_global_env *env, Oid user_id)
 	int new_len = envs_len + 1;
 	extend_envs(new_len);
 
-	env_entry entry = envs[new_len - 1];
-	entry.env = env;
-	entry.user_id = user_id;
+	envs[envs_len].env = env;
+	envs[envs_len].user_id = user_id;
 
 	envs_len = new_len;
 }
