@@ -25,9 +25,10 @@ new_tuple_converter(mrb_state *mrb, TupleDesc tupdesc)
 			ALLOCSET_SMALL_MAXSIZE);
 
 	MemoryContext old_context = MemoryContextSwitchTo(converter->memcontext);
-	converter->colnames = palloc(sizeof(mrb_value));
-	converter->coltypes = palloc(sizeof(plmruby_type));
+	converter->colnames = palloc(sizeof(mrb_value) * tupdesc->natts);
+	converter->coltypes = palloc(sizeof(plmruby_type) * tupdesc->natts);
 	MemoryContextSwitchTo(old_context);
+
 
 	for (int i = 0; i < tupdesc->natts; ++i)
 	{
