@@ -6,6 +6,9 @@
 
 #define DEFINE_GLOBAL_CONST(v) mrb_define_global_const(mrb, #v, mrb_fixnum_value(v))
 
+static void
+		append_string_info_mrb_value(mrb_state *mrb, StringInfo str, mrb_value v);
+
 mrb_value
 plmruby_elog(mrb_state *mrb, mrb_value self)
 {
@@ -36,12 +39,12 @@ plmruby_elog(mrb_state *mrb, mrb_value self)
 			mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid error level %S", mrb_fixnum_value(elevel));
 	}
 
-	appendStringInfoString(&msg, mrb_str_to_cstr(mrb, mrb_str_to_str(mrb, v)));
+	append_string_info_mrb_value(mrb, &msg, v);
 
 	for (mrb_int i = 0; i < rest_len; i++)
 	{
-		mrb_value r = rest[i];
-		appendStringInfo(&msg, " %s", mrb_str_to_cstr(mrb, mrb_str_to_str(mrb, r)));
+		appendStringInfoChar(&msg, ' ');
+		append_string_info_mrb_value(mrb, &msg, rest[i]);
 	}
 
 	elog((int) elevel, "%s", msg.data);
@@ -49,6 +52,13 @@ plmruby_elog(mrb_state *mrb, mrb_value self)
 	return mrb_nil_value();
 }
 
+static void
+append_string_info_mrb_value(mrb_state *mrb, StringInfo str, mrb_value v) {
+	if (mrb_symbol_p(v))
+		appendStringInfo(str, ":%s", mrb_sym2name(mrb, mrb_symbol(v)));
+	else
+		appendStringInfoString(str, mrb_str_to_cstr(mrb, mrb_str_to_str(mrb, v)));
+}
 
 void
 mrb_plmruby_gem_init(mrb_state *mrb)
