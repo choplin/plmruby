@@ -19,7 +19,7 @@ EXTVERSION := 0.0.1
 DATA := plmruby--$(EXTVERSION).sql
 
 REGRESS_FILES := $(wildcard sql/*.sql)
-REGRESS = $(subst sql/,,$(subst .sql,,$(REGRESS_FILES)))
+REGRESS = init-extension $(filter-out init-extension, $(subst sql/,,$(subst .sql,,$(REGRESS_FILES))))
 
 # strip " from library directory options
 SHLIB_LINK += $(subst \",,$(MRUBY_LDFLAGS_BEFORE_LIBS)) $(MRUBY_LIBS) $(subst \",,$(MRUBY_LDFLAGS))
