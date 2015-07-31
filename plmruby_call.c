@@ -95,7 +95,10 @@ call_set_returning_function(FunctionCallInfo fcinfo, plmruby_exec_env *xenv,
 			if (mrb->exc)
 			{
 				if (mrb->exc->c == E_STOP_ITERATION)
+				{
+					mrb->exc = NULL;
 					break;
+				}
 				else
 					ereport_exception(mrb);
 			}
