@@ -5,7 +5,7 @@
 
 /* TODO: cache classes */
 #define ENUMERATOR_CLASS (mrb_class_get(mrb, "Enumerator"))
-#define JSON_CLASS (mrb_class_get(mrb, "JSON"))
+#define JSON_MODULE (mrb_module_get(mrb, "JSON"))
 #define TIME_CLASS (mrb_class_get(mrb, "Time"))
 #define XML_MODULE (mrb_module_get(mrb, "TineXML2"))
 #define XML_DOCUMENT_CLASS (mrb_class_get_under(mrb, XML_MODULE, "XMLDocument"))

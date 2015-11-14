@@ -277,10 +277,8 @@ scalar_datum_to_mrb_value(mrb_state *mrb, Datum datum, plmruby_type *type)
 			const char *str = VARDATA_ANY(p);
 			size_t len = VARSIZE_ANY_EXHDR(p);
 
-			mrb_value json_class = mrb_obj_value(JSON_CLASS);
 			mrb_value json_str = to_mrb_string(mrb, str, len);
-
-			mrb_value result = mrb_funcall(mrb, json_class, "parse", 1, json_str);
+			mrb_value result = mrb_funcall(mrb, mrb_obj_value(JSON_MODULE), "parse", 1, json_str);
 
 			if (p != DatumGetPointer(datum))
 				pfree(p); /* free if detoasted */
@@ -558,8 +556,7 @@ mrb_value_to_scalar_datum(mrb_state *mrb, mrb_value value, bool *isnull, plmruby
 		case JSONOID:
 			if (mrb_hash_p(value) || mrb_array_p(value))
 			{
-				mrb_value json_class = mrb_obj_value(mrb_class_get(mrb, "JSON"));
-				mrb_value result = mrb_funcall(mrb, json_class, "stringify", 1, value);
+				mrb_value result = mrb_funcall(mrb, mrb_obj_value(JSON_MODULE), "stringify", 1, value);
 				return mrb_string_to_text_datum(result);
 			}
 			break;
