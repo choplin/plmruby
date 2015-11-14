@@ -9,11 +9,12 @@ MRuby::Build.new do |conf|
   end
 
   conf.gem :core => 'mruby-array-ext'
+  conf.gem :core => 'mruby-compiler'
   conf.gem :core => 'mruby-enum-ext'
   conf.gem :core => 'mruby-enum-lazy'
   conf.gem :core => 'mruby-enumerator'
+  conf.gem :core => 'mruby-error'
   conf.gem :core => 'mruby-eval'
-  conf.gem :core => 'mruby-exit'
   conf.gem :core => 'mruby-fiber'
   conf.gem :core => 'mruby-hash-ext'
   conf.gem :core => 'mruby-kernel-ext'
@@ -26,7 +27,6 @@ MRuby::Build.new do |conf|
   conf.gem :core => 'mruby-range-ext'
   conf.gem :core => 'mruby-sprintf'
   conf.gem :core => 'mruby-string-ext'
-  conf.gem :core => 'mruby-string-utf8'
   conf.gem :core => 'mruby-struct'
   conf.gem :core => 'mruby-symbol-ext'
   conf.gem :core => 'mruby-time'
