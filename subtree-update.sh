@@ -13,5 +13,5 @@ for d in ${deps[@]}; do
     url=$2
     branch=$3
 
-    git subtree pull --prefix deps/$name --squash -m "subtree update $url $branch" $url $branch
+    git subtree pull --prefix deps/$name --squash -m "subtree pull $url $branch" $url $branch
 done
