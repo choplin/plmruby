@@ -244,6 +244,7 @@ scalar_datum_to_mrb_value(mrb_state *mrb, Datum datum, plmruby_type *type)
 
 			return result;
 		}
+		/*
 		case XMLOID:
 		{
 			void *p = PG_DETOAST_DATUM_PACKED(datum);
@@ -257,9 +258,9 @@ scalar_datum_to_mrb_value(mrb_state *mrb, Datum datum, plmruby_type *type)
 			mrb_value result = mrb_funcall(mrb, doc, "parse", 1, xml_str);
 
 			if (p != DatumGetPointer(datum))
-				pfree(p); /* free if detoasted */
+				pfree(p); // free if detoasted
 
-			/* TODO: error message */
+			// TODO: error message
 			if (mrb_symbol(result) != mrb_intern_cstr(mrb, "XML_SUCCESS"))
 				elog(ERROR, "fail to parse xml");
 
@@ -268,6 +269,7 @@ scalar_datum_to_mrb_value(mrb_state *mrb, Datum datum, plmruby_type *type)
 
 			return doc;
 		}
+		*/
 #if PG_VERSION_NUM >= 90200
 		case JSONOID:
 		{
@@ -537,6 +539,7 @@ mrb_value_to_scalar_datum(mrb_state *mrb, mrb_value value, bool *isnull, plmruby
 			}
 			break;
 		}
+		/*
 		case XMLOID:
 		{
 			if (mrb_obj_is_kind_of(mrb, value, XML_DOCUMENT_CLASS))
@@ -550,6 +553,7 @@ mrb_value_to_scalar_datum(mrb_state *mrb, mrb_value value, bool *isnull, plmruby
 			}
 			break;
 		}
+		*/
 #if PG_VERSION_NUM >= 90200
 		case JSONOID:
 			if (mrb_hash_p(value) || mrb_array_p(value))

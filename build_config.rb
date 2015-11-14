@@ -41,9 +41,10 @@ MRuby::Build.new do |conf|
   conf.gem 'deps/mruby-json'
   conf.gem 'deps/mruby-onig-regexp'
   conf.gem 'deps/mruby-uname'
+  #conf.gem 'deps/mruby-tinyxml2'
 
   conf.gem 'mrbgems/plmruby'
 
-  conf.cc.include_paths += ENV['MRUBY_PG_INCLUDE_DIR'].split("\s")
+  conf.cc.include_paths << ENV['MRUBY_PG_INCLUDE_DIR'].split("\s")
   conf.cc.defines = ENV['MRUBY_DEFINES'].split("\s")
 end
