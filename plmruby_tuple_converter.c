@@ -80,10 +80,10 @@ tuple_to_mrb_value(tuple_converter *converter, HeapTuple tuple)
 	return hash;
 }
 
-Datum
-mrb_value_to_tuple_datum(tuple_converter *converter, mrb_value value, Tuplestorestate *tupstore, bool is_scalar)
+HeapTuple
+mrb_value_to_heap_tuple(tuple_converter *converter, mrb_value value, Tuplestorestate *tupstore, bool is_scalar)
 {
-	Datum result;
+	HeapTuple result;
 	mrb_state *mrb = converter->mrb;
 	TupleDesc tupdesc = converter->tupdesc;
 	int natts = tupdesc->natts;
@@ -138,11 +138,11 @@ mrb_value_to_tuple_datum(tuple_converter *converter, mrb_value value, Tuplestore
 	if (tupstore)
 	{
 		tuplestore_putvalues(tupstore, tupdesc, values, nulls);
-		result = (Datum) 0;
+		result = NULL;
 	}
 	else
 	{
-		result = HeapTupleGetDatum(heap_form_tuple(tupdesc, values, nulls));
+		result = heap_form_tuple(tupdesc, values, nulls);
 	}
 
 	pfree(values);

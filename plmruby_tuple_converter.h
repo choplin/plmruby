@@ -24,8 +24,8 @@ void
 mrb_value
 		tuple_to_mrb_value(tuple_converter *converter, HeapTuple tuple);
 
-Datum
-		mrb_value_to_tuple_datum(tuple_converter *converter, mrb_value value,
-								 Tuplestorestate *tupstore, bool is_scalar);
+HeapTuple
+		mrb_value_to_heap_tuple(tuple_converter *converter, mrb_value value,
+								Tuplestorestate *tupstore, bool is_scalar);
 
 #endif /* __PLMRUBY_TUPLE_CONVERTER_H__ */

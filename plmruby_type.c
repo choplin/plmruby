@@ -12,6 +12,7 @@
 #include <mruby/array.h>
 #include <mruby/class.h>
 #include <mruby/string.h>
+#include <funcapi.h>
 
 #include "plmruby_type.h"
 #include "plmruby_util.h"
@@ -594,7 +595,7 @@ mrb_value_to_record_datum(mrb_state *mrb, mrb_value value, bool *isnull, plmruby
 
 	tuple_converter *converter = new_tuple_converter(mrb, tupdesc);
 
-	result = mrb_value_to_tuple_datum(converter, value, NULL, false);
+	result = HeapTupleGetDatum(mrb_value_to_heap_tuple(converter, value, NULL, false));
 
 	ReleaseTupleDesc(tupdesc);
 	delete_tuple_converter(converter);

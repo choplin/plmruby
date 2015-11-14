@@ -78,8 +78,8 @@ call_set_returning_function(FunctionCallInfo fcinfo, plmruby_exec_env *xenv,
 	{
 		mrb_int len = RARRAY_LEN(result);
 		for (int i = 0; i < len; ++i)
-			mrb_value_to_tuple_datum(converter, mrb_ary_ref(mrb, result, i),
-									 rsinfo->setResult, functypclass == TYPEFUNC_SCALAR);
+			mrb_value_to_heap_tuple(converter, mrb_ary_ref(mrb, result, i),
+									rsinfo->setResult, functypclass == TYPEFUNC_SCALAR);
 	}
 	else
 	{
@@ -102,8 +102,8 @@ call_set_returning_function(FunctionCallInfo fcinfo, plmruby_exec_env *xenv,
 				else
 					ereport_exception(mrb);
 			}
-			mrb_value_to_tuple_datum(converter, next, rsinfo->setResult,
-									 functypclass == TYPEFUNC_SCALAR);
+			mrb_value_to_heap_tuple(converter, next, rsinfo->setResult,
+									functypclass == TYPEFUNC_SCALAR);
 		}
 	}
 
