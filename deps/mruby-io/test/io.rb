@@ -150,6 +150,14 @@ assert('IO#write', '15.2.20.5.20') do
   true
 end
 
+assert('IO#<<') do
+  io = IO.open(IO.sysopen($mrbtest_io_wfname))
+  io << "" << ""
+  assert_equal 0, io.pos
+  io.close
+  true
+end
+
 assert('IO.for_fd') do
   fd = IO.sysopen($mrbtest_io_rfname)
   io = IO.for_fd(fd)
@@ -248,6 +256,17 @@ assert('IO#pos=, IO#seek') do
   io.closed?
 end
 
+assert('IO#rewind') do
+  fd = IO.sysopen $mrbtest_io_rfname
+  io = IO.new fd
+  assert_equal 'm', io.getc
+  assert_equal 1, io.pos
+  assert_equal 0, io.rewind
+  assert_equal 0, io.pos
+  io.close
+  io.closed?
+end
+
 assert('IO#gets') do
   fd = IO.sysopen $mrbtest_io_rfname
   io = IO.new fd
@@ -321,6 +340,7 @@ end
 
 assert('IO.popen') do
   io = IO.popen("ls")
+  assert_true io.close_on_exec?
   assert_equal Fixnum, io.pid.class
   ls = io.read
   assert_equal ls.class, String
@@ -362,28 +382,28 @@ assert('IO#fileno') do
   io.closed?
 end
 
-assert('IO#close_on_exec') do 
+assert('IO#close_on_exec') do
   fd = IO.sysopen $mrbtest_io_wfname, "w"
   io = IO.new fd, "w"
-  begin 
-    # IO.sysopen opens a file descripter without O_CLOEXEC flag.
-    assert_equal(false, io.close_on_exec?)
+  begin
+    # IO.sysopen opens a file descripter with O_CLOEXEC flag.
+    assert_true io.close_on_exec?
   rescue ScriptError
     skip "IO\#close_on_exec is not implemented."
   end
 
-  io.close_on_exec = true
-  assert_equal(true, io.close_on_exec?)
   io.close_on_exec = false
   assert_equal(false, io.close_on_exec?)
   io.close_on_exec = true
   assert_equal(true, io.close_on_exec?)
-  
+  io.close_on_exec = false
+  assert_equal(false, io.close_on_exec?)
+
   io.close
   io.closed?
 
   # # Use below when IO.pipe is implemented.
-  # begin 
+  # begin
   #   r, w = IO.pipe
   #   assert_equal(false, r.close_on_exec?)
   #   r.close_on_exec = true
@@ -404,6 +424,14 @@ assert('IO#close_on_exec') do
   #   r.close unless r.closed?
   #   w.close unless w.closed?
   # end
+end
+
+assert('IO#sysseek') do
+  IO.open(IO.sysopen($mrbtest_io_rfname)) do |io|
+    assert_equal 2, io.sysseek(2)
+    assert_equal 5, io.sysseek(3, IO::SEEK_CUR) # 2 + 3 => 5
+    assert_equal $mrbtest_io_msg.size - 4, io.sysseek(-4, IO::SEEK_END)
+  end
 end
 
 assert('`cmd`') do
