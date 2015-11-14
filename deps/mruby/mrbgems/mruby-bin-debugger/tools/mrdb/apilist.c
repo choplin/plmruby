@@ -45,18 +45,18 @@ build_path(mrb_state *mrb, const char *dir, const char *base)
   len = strlen(base) + 1;
 
   if (strcmp(dir, ".")) {
-    len += strlen(dir) + strlen("/");
+    len += strlen(dir) + sizeof("/") - 1;
   }
 
-  if ((path = mrb_malloc(mrb, len)) != NULL) {
-    memset(path, 0, len);
+  path = mrb_malloc(mrb, len);
+  memset(path, 0, len);
 
-    if (strcmp(dir, ".")) {
-      strcat(path, dir);
-      strcat(path, "/");
-    }
-    strcat(path, base);
+  if (strcmp(dir, ".")) {
+    strcat(path, dir);
+    strcat(path, "/");
   }
+  strcat(path, base);
+
   return path;
 }
 
@@ -73,9 +73,10 @@ dirname(mrb_state *mrb, const char *path)
   p = strrchr(path, '/');
   len = p != NULL ? p - path : strlen(path);
 
-  if ((dir = mrb_malloc(mrb, len + 1)) != NULL) {
-    strncpy(dir, path, len);
-  }
+  dir = mrb_malloc(mrb, len + 1);
+  strncpy(dir, path, len);
+  dir[len] = '\0';
+
   return dir;
 }
 
@@ -84,9 +85,7 @@ source_file_new(mrb_state *mrb, mrb_debug_context *dbg, char *filename)
 {
   source_file *file = NULL;
 
-  if ((file = mrb_malloc(mrb, sizeof(source_file))) == NULL) {
-    return NULL;
-  }
+  file = mrb_malloc(mrb, sizeof(source_file));
 
   memset(file, '\0', sizeof(source_file));
   file->fp = fopen(filename, "rb");
@@ -105,7 +104,8 @@ source_file_new(mrb_state *mrb, mrb_debug_context *dbg, char *filename)
 static mrb_bool
 remove_newlines(char *s, FILE *fp)
 {
-  char c, *p;
+  int c;
+  char *p;
   size_t len;
 
   if ((len = strlen(s)) == 0) {
@@ -120,7 +120,7 @@ remove_newlines(char *s, FILE *fp)
 
   if (*p == '\r') {
     /* peek the next character and skip '\n' */
-    if ((unsigned char)(c = fgetc(fp)) != '\n') {
+    if ((c = fgetc(fp)) != '\n') {
       ungetc(c, fp);
     }
   }
@@ -196,6 +196,9 @@ mrb_debug_get_source(mrb_state *mrb, mrdb_state *mrdb, const char *srcpath, cons
     fclose(fp);
     break;
   }
+
+  mrb_free(mrb, (void *)search_path[1]);
+
   return path;
 }
 

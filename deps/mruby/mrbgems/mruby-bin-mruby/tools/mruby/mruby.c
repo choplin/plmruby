@@ -11,16 +11,14 @@
 static void
 p(mrb_state *mrb, mrb_value obj)
 {
-  obj = mrb_funcall(mrb, obj, "inspect", 0);
-  fwrite(RSTRING_PTR(obj), RSTRING_LEN(obj), 1, stdout);
+  mrb_value val = mrb_inspect(mrb, obj);
+
+  fwrite(RSTRING_PTR(val), RSTRING_LEN(val), 1, stdout);
   putc('\n', stdout);
 }
 #else
 #define p(mrb,obj) mrb_p(mrb,obj)
 #endif
-
-void mrb_show_version(mrb_state *);
-void mrb_show_copyright(mrb_state *);
 
 struct _args {
   FILE *rfp;
@@ -161,10 +159,9 @@ cleanup(mrb_state *mrb, struct _args *args)
 {
   if (args->rfp && args->rfp != stdin)
     fclose(args->rfp);
-  if (args->cmdline && !args->fname)
+  if (!args->fname)
     mrb_free(mrb, args->cmdline);
-  if (args->argv)
-    mrb_free(mrb, args->argv);
+  mrb_free(mrb, args->argv);
   mrb_close(mrb);
 }
 
@@ -194,7 +191,11 @@ main(int argc, char **argv)
 
   ARGV = mrb_ary_new_capa(mrb, args.argc);
   for (i = 0; i < args.argc; i++) {
-    mrb_ary_push(mrb, ARGV, mrb_str_new_cstr(mrb, args.argv[i]));
+    char* utf8 = mrb_utf8_from_locale(args.argv[i], -1);
+    if (utf8) {
+      mrb_ary_push(mrb, ARGV, mrb_str_new_cstr(mrb, utf8));
+      mrb_utf8_free(utf8);
+    }
   }
   mrb_define_global_const(mrb, "ARGV", ARGV);
 
@@ -207,7 +208,7 @@ main(int argc, char **argv)
   /* Set $0 */
   zero_sym = mrb_intern_lit(mrb, "$0");
   if (args.rfp) {
-    char *cmdline;
+    const char *cmdline;
     cmdline = args.cmdline ? args.cmdline : "-";
     mrbc_filename(mrb, c, cmdline);
     mrb_gv_set(mrb, zero_sym, mrb_str_new_cstr(mrb, cmdline));
@@ -225,7 +226,10 @@ main(int argc, char **argv)
     v = mrb_load_file_cxt(mrb, args.rfp, c);
   }
   else {
-    v = mrb_load_string_cxt(mrb, args.cmdline, c);
+    char* utf8 = mrb_utf8_from_locale(args.cmdline, -1);
+    if (!utf8) abort();
+    v = mrb_load_string_cxt(mrb, utf8, c);
+    mrb_utf8_free(utf8);
   }
 
   mrbc_context_free(mrb, c);

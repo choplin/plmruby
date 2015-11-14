@@ -1,6 +1,8 @@
 ##
 # String(Ext) Test
 
+UTF8STRING = ("\343\201\202".size == 1)
+
 assert('String#getbyte') do
   str1 = "hello"
   bytes1 = [104, 101, 108, 108, 111]
@@ -11,6 +13,22 @@ assert('String#getbyte') do
   str2 = "\xFF"
   bytes2 = [0xFF]
   assert_equal bytes2[0], str2.getbyte(0)
+end
+
+assert('String#setbyte') do
+  str1 = "hello"
+  h = "H".getbyte(0)
+  str1.setbyte(0, h)
+  assert_equal(h, str1.getbyte(0))
+  assert_equal("Hello", str1)
+end
+
+assert('String#byteslice') do
+  str1 = "hello"
+  assert_equal("e", str1.byteslice(1))
+  assert_equal("o", str1.byteslice(-1))
+  assert_equal("ell", str1.byteslice(1..3))
+  assert_equal("el", str1.byteslice(1...3))
 end
 
 assert('String#dump') do
@@ -164,6 +182,8 @@ end
 
 assert('String#chr') do
   assert_equal "a", "abcde".chr
+  # test Fixnum#chr as well
+  assert_equal "a", 97.chr
 end
 
 assert('String#lines') do
@@ -358,8 +378,8 @@ assert('String#succ') do
   assert_equal "-b-", a
   a = "-z-"; a.succ!
   assert_equal "-aa-", a
-  a = "あa"; a.succ!
-  assert_equal "あb", a
+  a = "あb"; a.succ!
+  assert_equal "あc", a
   a = "あaz"; a.succ!
   assert_equal "あba", a
 end
@@ -370,3 +390,181 @@ assert('String#next') do
   a = "00"; a.next!
   assert_equal "01", a
 end
+
+assert('String#insert') do
+  assert_equal "Xabcd", "abcd".insert(0, 'X')
+  assert_equal "abcXd", "abcd".insert(3, 'X')
+  assert_equal "abcdX", "abcd".insert(4, 'X')
+  assert_equal "abXcd", "abcd".insert(-3, 'X')
+  assert_equal "abcdX", "abcd".insert(-1, 'X')
+  assert_raise(IndexError) { "abcd".insert(5, 'X') }
+  assert_raise(IndexError) { "abcd".insert(-6, 'X') }
+end
+
+assert('String#prepend') do
+  a = "world"
+  assert_equal "hello world", a.prepend("hello ")
+  assert_equal "hello world", a
+end
+
+assert('String#ljust') do
+  assert_equal "hello", "hello".ljust(4)
+  assert_equal "hello               ", "hello".ljust(20)
+  assert_equal "hello123412341234123", "hello".ljust(20, '1234')
+  assert_equal "hello", "hello".ljust(-3)
+end
+
+assert('String#upto') do
+  a     = "aa"
+  start = "aa"
+  count = 0
+  assert_equal("aa", a.upto("zz") {|s|
+    assert_equal(start, s)
+    start.succ!
+    count += 1
+  })
+  assert_equal(676, count)
+
+  a     = "a"
+  start = "a"
+  count = 0
+  assert_equal("a", a.upto("a") {|s|
+    assert_equal(start, s)
+    start.succ!
+    count += 1
+  })
+  assert_equal(1, count)
+
+  a     = "a"
+  start = "a"
+  count = 0
+  assert_equal("a", a.upto("b", true) {|s|
+    assert_equal(start, s)
+    start.succ!
+    count += 1
+  })
+  assert_equal(1, count)
+
+  a     = "0"
+  start = "0"
+  count = 0
+  assert_equal("0", a.upto("0") {|s|
+    assert_equal(start, s)
+    start.succ!
+    count += 1
+  })
+  assert_equal(1, count)
+
+  a     = "0"
+  start = "0"
+  count = 0
+  assert_equal("0", a.upto("-1") {|s|
+    assert_equal(start, s)
+    start.succ!
+    count += 1
+  })
+  assert_equal(0, count)
+
+  a     = "-1"
+  start = "-1"
+  count = 0
+  assert_equal("-1", a.upto("-2") {|s|
+    assert_equal(start, s)
+    start.succ!
+    count += 1
+  })
+  assert_equal(2, count)
+end
+
+assert('String#ord') do
+  got = "hello!".split('').map {|x| x.ord}
+  expect = [104, 101, 108, 108, 111, 33]
+  assert_equal expect, got
+end
+
+assert('String#ord(UTF-8)') do
+  got = "こんにちは世界!".split('').map {|x| x.ord}
+  expect = [0x3053,0x3093,0x306b,0x3061,0x306f,0x4e16,0x754c,0x21]
+  assert_equal expect, got
+end if UTF8STRING
+
+assert('String#chr') do
+  assert_equal "h", "hello!".chr
+end
+assert('String#chr(UTF-8)') do
+  assert_equal "こ", "こんにちは世界!".chr
+end if UTF8STRING
+
+assert('String#chars') do
+  expect = ["h", "e", "l", "l", "o", "!"]
+  assert_equal expect, "hello!".chars
+  s = ""
+  "hello!".chars do |x|
+    s += x
+  end
+  assert_equal "hello!", s
+end
+
+assert('String#chars(UTF-8)') do
+  expect = ['こ', 'ん', 'に', 'ち', 'は', '世', '界', '!']
+  assert_equal expect, "こんにちは世界!".chars
+  s = ""
+  "こんにちは世界!".chars do |x|
+    s += x
+  end
+  assert_equal "こんにちは世界!", s
+end if UTF8STRING
+
+assert('String#each_char') do
+  s = ""
+  "hello!".each_char do |x|
+    s += x
+  end
+  assert_equal "hello!", s
+end
+
+assert('String#each_char(UTF-8)') do
+  s = ""
+  "こんにちは世界!".each_char do |x|
+    s += x
+  end
+  assert_equal "こんにちは世界!", s
+end if UTF8STRING
+
+assert('String#codepoints') do
+  expect = [104, 101, 108, 108, 111, 33]
+  assert_equal expect, "hello!".codepoints
+  cp = []
+  "hello!".codepoints do |x|
+    cp << x
+  end
+  assert_equal expect, cp
+end
+
+assert('String#codepoints(UTF-8)') do
+  expect = [12371, 12435, 12395, 12385, 12399, 19990, 30028, 33]
+  assert_equal expect, "こんにちは世界!".codepoints
+  cp = []
+  "こんにちは世界!".codepoints do |x|
+    cp << x
+  end
+  assert_equal expect, cp
+end if UTF8STRING
+
+assert('String#each_codepoint') do
+  expect = [104, 101, 108, 108, 111, 33]
+  cp = []
+  "hello!".each_codepoint do |x|
+    cp << x
+  end
+  assert_equal expect, cp
+end
+
+assert('String#each_codepoint(UTF-8)') do
+  expect = [12371, 12435, 12395, 12385, 12399, 19990, 30028, 33]
+  cp = []
+  "こんにちは世界!".each_codepoint do |x|
+    cp << x
+  end
+  assert_equal expect, cp
+end if UTF8STRING

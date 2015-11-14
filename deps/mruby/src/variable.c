@@ -4,7 +4,6 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include <ctype.h>
 #include "mruby.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
@@ -564,7 +563,7 @@ MRB_API void
 mrb_iv_check(mrb_state *mrb, mrb_sym iv_name)
 {
   if (!mrb_iv_p(mrb, iv_name)) {
-    mrb_name_error(mrb, iv_name, "`%S' is not allowed as an instance variable name", mrb_sym2str(mrb, iv_name));
+    mrb_name_error(mrb, iv_name, "'%S' is not allowed as an instance variable name", mrb_sym2str(mrb, iv_name));
   }
 }
 
@@ -610,7 +609,7 @@ inspect_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
   else {
     ins = mrb_inspect(mrb, v);
   }
-  mrb_str_append(mrb, str, ins);
+  mrb_str_cat_str(mrb, str, ins);
   return 0;
 }
 
@@ -760,16 +759,28 @@ MRB_API mrb_value
 mrb_mod_cv_get(mrb_state *mrb, struct RClass * c, mrb_sym sym)
 {
   struct RClass * cls = c;
+  mrb_value v;
 
   while (c) {
-    if (c->iv) {
-      iv_tbl *t = c->iv;
-      mrb_value v;
-
-      if (iv_get(mrb, t, sym, &v))
-        return v;
+    if (c->iv && iv_get(mrb, c->iv, sym, &v)) {
+      return v;
     }
     c = c->super;
+  }
+  if (cls && cls->tt == MRB_TT_SCLASS) {
+    mrb_value klass;
+
+    klass = mrb_obj_iv_get(mrb, (struct RObject *)cls,
+                           mrb_intern_lit(mrb, "__attached__"));
+    c = mrb_class_ptr(klass);
+    if (c->tt == MRB_TT_CLASS) {
+      while (c) {
+        if (c->iv && iv_get(mrb, c->iv, sym, &v)) {
+          return v;
+        }
+        c = c->super;
+      }
+    }
   }
   mrb_name_error(mrb, sym, "uninitialized class variable %S in %S",
                  mrb_sym2str(mrb, sym), mrb_obj_value(cls));
@@ -914,6 +925,14 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
 
     if (c->iv && iv_get(mrb, c->iv, sym, &v)) {
       return v;
+    }
+    if (c->tt == MRB_TT_SCLASS) {
+      mrb_value klass;
+      klass = mrb_obj_iv_get(mrb, (struct RObject *)c,
+                             mrb_intern_lit(mrb, "__attached__"));
+      c2 = mrb_class_ptr(klass);
+      if (c2->tt == MRB_TT_CLASS)
+        c = c2;
     }
     c2 = c;
     for (;;) {

@@ -1,17 +1,16 @@
 ##
 # Enumerable
 #
-#  ISO 15.3.2
+# The <code>Enumerable</code> mixin provides collection classes with
+# several traversal and searching methods, and with the ability to
+# sort. The class must provide a method `each`, which
+# yields successive members of the collection. If
+# {Enumerable#max}, {#min}, or
+# {#sort} is used, the objects in the collection must also
+# implement a meaningful `<=>` operator, as these methods
+# rely on an ordering between members of the collection.
 #
-#  The <code>Enumerable</code> mixin provides collection classes with
-#  several traversal and searching methods, and with the ability to
-#  sort. The class must provide a method <code>each</code>, which
-#  yields successive members of the collection. If
-#  <code>Enumerable#max</code>, <code>#min</code>, or
-#  <code>#sort</code> is used, the objects in the collection must also
-#  implement a meaningful <code><=></code> operator, as these methods
-#  rely on an ordering between members of the collection.
-
+# @ISO 15.3.2
 module Enumerable
 
   ##
@@ -24,17 +23,9 @@ module Enumerable
   # ISO 15.3.2.2.1
   def all?(&block)
     if block
-      self.each{|*val|
-        unless block.call(*val)
-          return false
-        end
-      }
+      self.each{|*val| return false unless block.call(*val)}
     else
-      self.each{|*val|
-        unless val.__svalue
-          return false
-        end
-      }
+      self.each{|*val| return false unless val.__svalue}
     end
     true
   end
@@ -49,17 +40,9 @@ module Enumerable
   # ISO 15.3.2.2.2
   def any?(&block)
     if block
-      self.each{|*val|
-        if block.call(*val)
-          return true
-        end
-      }
+      self.each{|*val| return true if block.call(*val)}
     else
-      self.each{|*val|
-        if val.__svalue
-          return true
-        end
-      }
+      self.each{|*val| return true if val.__svalue}
     end
     false
   end
@@ -72,12 +55,10 @@ module Enumerable
   #
   # ISO 15.3.2.2.3
   def collect(&block)
-    return to_enum :collect unless block_given?
+    return to_enum :collect unless block
 
     ary = []
-    self.each{|*val|
-      ary.push(block.call(*val))
-    }
+    self.each{|*val| ary.push(block.call(*val))}
     ary
   end
 
@@ -108,7 +89,7 @@ module Enumerable
   #
   # ISO 15.3.2.2.5
   def each_with_index(&block)
-    return to_enum :each_with_index unless block_given?
+    return to_enum :each_with_index unless block
 
     i = 0
     self.each{|*val|
@@ -146,7 +127,7 @@ module Enumerable
   #
   # ISO 15.3.2.2.8
   def find_all(&block)
-    return to_enum :find_all unless block_given?
+    return to_enum :find_all unless block
 
     ary = []
     self.each{|*val|
@@ -183,9 +164,7 @@ module Enumerable
   # ISO 15.3.2.2.10
   def include?(obj)
     self.each{|*val|
-      if val.__svalue == obj
-        return true
-      end
+      return true if val.__svalue == obj
     }
     false
   end
@@ -402,8 +381,11 @@ module Enumerable
   # redefine #hash 15.3.1.3.15
   def hash
     h = 12347
+    i = 0
     self.each do |e|
-      h ^= e.hash
+      n = e.hash << (i % 16)
+      h ^= n
+      i += 1
     end
     h
   end

@@ -217,7 +217,7 @@ class Array
   #    [ "a", "b", "c" ].compact!           #=> nil
   #
   def compact!
-    result = self.select { |e| e != nil }
+    result = self.select { |e| !e.nil? }
     if result.size == self.size
       nil
     else
@@ -262,7 +262,7 @@ class Array
   #
 
   def fetch(n=nil, ifnone=NONE, &block)
-    warn "block supersedes default value argument" if n != nil && ifnone != NONE && block
+    warn "block supersedes default value argument" if !n.nil? && ifnone != NONE && block
 
     idx = n
     if idx < 0
@@ -312,51 +312,51 @@ class Array
   #
 
   def fill(arg0=nil, arg1=nil, arg2=nil, &block)
-    if arg0 == nil && arg1 == nil && arg2 == nil && !block
+    if arg0.nil? && arg1.nil? && arg2.nil? && !block
       raise ArgumentError, "wrong number of arguments (0 for 1..3)"
     end
 
     beg = len = 0
     ary = []
     if block
-      if arg0 == nil && arg1 == nil && arg2 == nil
+      if arg0.nil? && arg1.nil? && arg2.nil?
         # ary.fill { |index| block }                    -> ary
         beg = 0
         len = self.size
-      elsif arg0 != nil && arg0.kind_of?(Range)
+      elsif !arg0.nil? && arg0.kind_of?(Range)
         # ary.fill(range) { |index| block }             -> ary
         beg = arg0.begin
         beg += self.size if beg < 0
         len = arg0.end
         len += self.size if len < 0
         len += 1 unless arg0.exclude_end?
-      elsif arg0 != nil
+      elsif !arg0.nil?
         # ary.fill(start [, length] ) { |index| block } -> ary
         beg = arg0
         beg += self.size if beg < 0
-        if arg1 == nil
+        if arg1.nil?
           len = self.size
         else
           len = arg0 + arg1
         end
       end
     else
-      if arg0 != nil && arg1 == nil && arg2 == nil
+      if !arg0.nil? && arg1.nil? && arg2.nil?
         # ary.fill(obj)                                 -> ary
         beg = 0
         len = self.size
-      elsif arg0 != nil && arg1 != nil && arg1.kind_of?(Range)
+      elsif !arg0.nil? && !arg1.nil? && arg1.kind_of?(Range)
         # ary.fill(obj, range )                         -> ary
         beg = arg1.begin
         beg += self.size if beg < 0
         len = arg1.end
         len += self.size if len < 0
         len += 1 unless arg1.exclude_end?
-      elsif arg0 != nil && arg1 != nil
+      elsif !arg0.nil? && !arg1.nil?
         # ary.fill(obj, start [, length])               -> ary
         beg = arg1
         beg += self.size if beg < 0
-        if arg2 == nil
+        if arg2.nil?
           len = self.size
         else
           len = beg + arg2
@@ -582,7 +582,7 @@ class Array
       elsif v == true
         satisfied = true
         smaller = true
-      elsif v == false || v == nil
+      elsif v == false || v.nil?
         smaller = false
       end
       if smaller
@@ -680,5 +680,33 @@ class Array
     end
     return nil if self.size == result.size
     self.replace(result)
+  end
+
+  ##
+  #  call-seq:
+  #     ary.index(val)            -> int or nil
+  #     ary.index {|item| block } ->  int or nil
+  #
+  #  Returns the _index_ of the first object in +ary+ such that the object is
+  #  <code>==</code> to +obj+.
+  #
+  #  If a block is given instead of an argument, returns the _index_ of the
+  #  first object for which the block returns +true+.  Returns +nil+ if no
+  #  match is found.
+  #
+  # ISO 15.2.12.5.14
+  def index(val=NONE, &block)
+    return to_enum(:find_index, val) if !block && val == NONE
+
+    if block
+      idx = 0
+      self.each do |*e|
+        return idx if block.call(*e)
+        idx += 1
+      end
+    else
+      return self.__ary_index(val)
+    end
+    nil
   end
 end

@@ -167,7 +167,7 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
     }
   }
   if (resume && c->status == MRB_FIBER_TRANSFERRED) {
-    mrb_raise(mrb, E_FIBER_ERROR, "resuming transfered fiber");
+    mrb_raise(mrb, E_FIBER_ERROR, "resuming transferred fiber");
   }
   if (c->status == MRB_FIBER_RUNNING || c->status == MRB_FIBER_RESUMING) {
     mrb_raise(mrb, E_FIBER_ERROR, "double resume");
@@ -228,6 +228,13 @@ fiber_resume(mrb_state *mrb, mrb_value self)
   return fiber_switch(mrb, self, len, a, TRUE);
 }
 
+/* resume thread with given arguments */
+MRB_API mrb_value
+mrb_fiber_resume(mrb_state *mrb, mrb_value fib, mrb_int len, const mrb_value *a)
+{
+  return fiber_switch(mrb, fib, len, a, TRUE);
+}
+
 /*
  *  call-seq:
  *     fiber.alive? -> true or false
@@ -258,8 +265,8 @@ fiber_eq(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     fiber.transfer(args, ...) -> obj
  *
- *  Transfers control to reciever fiber of the method call.
- *  Unlike <code>resume</code> the reciever wouldn't be pushed to call
+ *  Transfers control to receiver fiber of the method call.
+ *  Unlike <code>resume</code> the receiver wouldn't be pushed to call
  * stack of fibers. Instead it will switch to the call stack of
  * transferring fiber.
  *  When resuming a fiber that was transferred to another fiber it would
@@ -291,6 +298,8 @@ fiber_transfer(mrb_state *mrb, mrb_value self)
   return fiber_switch(mrb, self, len, a, FALSE);
 }
 
+/* yield values to the caller fiber */
+/* mrb_fiber_yield() must be called as `return mrb_fiber_yield(...)` */
 MRB_API mrb_value
 mrb_fiber_yield(mrb_state *mrb, mrb_int len, const mrb_value *a)
 {
