@@ -65,7 +65,7 @@ static int lib_hmac_block_length(const struct mrb_hmac *);
 static int lib_hmac_digest_length(const struct mrb_hmac *);
 static void lib_hmac_free(mrb_state *, void *);
 static void lib_hmac_init(mrb_state *, struct mrb_hmac *, int, const unsigned char *, mrb_int);
-static void lib_hmac_update(struct mrb_hmac *, unsigned char *, mrb_int);
+static void lib_hmac_update(mrb_state *, struct mrb_hmac *, unsigned char *, mrb_int);
 
 
 #if defined(USE_DIGEST_OPENSSL)
@@ -262,7 +262,7 @@ lib_hmac_init(mrb_state *mrb, struct mrb_hmac *hmac, int type, const unsigned ch
 }
 
 static void
-lib_hmac_update(struct mrb_hmac *hmac, unsigned char *data, int len)
+lib_hmac_update(mrb_state *mrb, struct mrb_hmac *hmac, unsigned char *data, mrb_int len)
 {
 #if MRB_INT_MAX > INT_MAX
   if (len > INT_MAX) {
@@ -514,14 +514,17 @@ lib_hmac_init(mrb_state *mrb, struct mrb_hmac *hmac, int type, const unsigned ch
   case MD_TYPE_SHA256: algorithm = kCCHmacAlgSHA256; break;
   case MD_TYPE_SHA384: algorithm = kCCHmacAlgSHA384; break;
   case MD_TYPE_SHA512: algorithm = kCCHmacAlgSHA512; break;
-  default:					     break;
+  default:
+    mrb_raisef(mrb, E_RUNTIME_ERROR, "mruby-digest: internal error: unexpected HMAC type: %S", mrb_fixnum_value(type));
+    algorithm = 0;
+    break;
   }
   hmac->type = type;
   CCHmacInit(&hmac->ctx, algorithm, key, keylen);
 }
 
 static void
-lib_hmac_update(struct mrb_hmac *hmac, unsigned char *data, mrb_int len)
+lib_hmac_update(mrb_state *mrb, struct mrb_hmac *hmac, unsigned char *data, mrb_int len)
 {
 #if MRB_INT_MAX > SIZE_MAX
   if (len > SIZE_MAX) {
@@ -770,7 +773,7 @@ mrb_hmac_update(mrb_state *mrb, mrb_value self)
   hmac = (struct mrb_hmac *)DATA_PTR(self);
   if (!hmac) return mrb_nil_value();
   mrb_get_args(mrb, "s", &str, &len);
-  lib_hmac_update(hmac, (unsigned char *)str, len);
+  lib_hmac_update(mrb, hmac, (unsigned char *)str, len);
   return self;
 }
 
