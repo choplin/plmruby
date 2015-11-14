@@ -11,10 +11,10 @@
 #define XML_DOCUMENT_CLASS (mrb_class_get_under(mrb, XML_MODULE, "XMLDocument"))
 #define E_STOP_ITERATION (mrb_class_get(mrb, "StopIteration"))
 
+#define DEBUG_P(mrb, v) elog(DEBUG1, #v ": %s", mrb_str_to_cstr((mrb), mrb_inspect((mrb), (v))))
+
 void
 		ereport_exception(mrb_state *mrb);
 
-void
-		mrb_debug_p(mrb_state *mrb, mrb_value v);
 
 #endif /* __PLMRUBY_UTIL_H__ */
