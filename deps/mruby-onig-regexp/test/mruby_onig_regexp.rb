@@ -77,8 +77,38 @@ assert("OnigRegexp#source", '15.2.15.7.8') do
   reg.source == str
 end
 
-assert('OnigRegexp#options') do
-  assert_equal OnigRegexp::MULTILINE, OnigRegexp.new(".*", OnigRegexp::MULTILINE).options
+if OnigRegexp.const_defined? :ASCII_RANGE
+  assert('OnigRegexp#options (no options)') do
+    assert_equal OnigRegexp::ASCII_RANGE | OnigRegexp::POSIX_BRACKET_ALL_RANGE | OnigRegexp::WORD_BOUND_ALL_RANGE, OnigRegexp.new(".*").options
+  end
+
+  assert('OnigRegexp#options (multiline)') do
+    assert_equal OnigRegexp::MULTILINE | OnigRegexp::ASCII_RANGE | OnigRegexp::POSIX_BRACKET_ALL_RANGE | OnigRegexp::WORD_BOUND_ALL_RANGE, OnigRegexp.new(".*", OnigRegexp::MULTILINE).options
+  end
+end
+
+assert("OnigRegexp#inspect") do
+  reg = OnigRegexp.new("(https?://[^/]+)[-a-zA-Z0-9./]+")
+
+  assert_equal '/(https?:\/\/[^\/]+)[-a-zA-Z0-9.\/]+/', reg.inspect
+  assert_equal '/abc\nd\te/mi', OnigRegexp.new("abc\nd\te", OnigRegexp::MULTILINE | OnigRegexp::IGNORECASE).inspect
+end
+
+assert("OnigRegexp#to_s") do
+  assert_equal '(?-mix:ab+c)', OnigRegexp.new("ab+c").to_s
+  assert_equal '(?-mix:ab+c)', /ab+c/.to_s
+  assert_equal '(?mx-i:ab+c)', OnigRegexp.new("ab+c", OnigRegexp::MULTILINE | OnigRegexp::EXTENDED).to_s
+  assert_equal '(?mi-x:ab+c)', /ab+c/im.to_s
+end
+
+assert("OnigRegexp#to_s (composition)") do
+  re1 = OnigRegexp.new("ab+c")
+  re2 = OnigRegexp.new("xy#{re1}z")
+  assert_equal '(?-mix:xy(?-mix:ab+c)z)', re2.to_s
+
+  re3 = OnigRegexp.new("ab.+c", OnigRegexp::MULTILINE)
+  re4 = OnigRegexp.new("xy#{re3}z", OnigRegexp::IGNORECASE)
+  assert_equal '(?i-mx:xy(?m-ix:ab.+c)z)', re4.to_s
 end
 
 # Extended patterns.
@@ -133,11 +163,14 @@ assert('OnigMatchData#[]', '15.2.16.3.1') do
   assert_nil m[3]
 
   m = OnigRegexp.new('(?<name>\w\w)').match('aba')
-  assert_raise(ArgumentError) { m[[]] }
+  assert_raise(TypeError) { m[[]] }
   assert_raise(IndexError) { m['nam'] }
   assert_equal 'ab', m[:name]
   assert_equal 'ab', m['name']
   assert_equal 'ab', m[1]
+
+  m = OnigRegexp.new('(\w) (\w) (\w) (\w)').match('a b c d')
+  assert_equal %w(a b c d), m[1..-1]
 end
 
 assert('OnigMatchData#begin', '15.2.16.3.2') do
@@ -264,6 +297,19 @@ assert('String#onig_regexp_split') do
   assert_equal ['1', '', '2', '3', '', '4', '', ''], test_str.onig_regexp_split(OnigRegexp.new(','), -4)
 
   assert_equal [], ''.onig_regexp_split(OnigRegexp.new(','), -1)
+end
+
+assert('String#index') do
+  assert_equal 0, 'abc'.index('a')
+  assert_nil 'abc'.index('d')
+  assert_equal 3, 'abcabc'.index('a', 1)
+  assert_equal 1, "hello".index(?e)
+
+  assert_equal 0, 'abcabc'.index(/a/)
+  assert_nil 'abc'.index(/d/)
+  assert_equal 3, 'abcabc'.index(/a/, 1)
+  assert_equal 4, "hello".index(/[aeiou]/, -3)
+  assert_equal 3, "regexpindex".index(/e.*x/, 2)
 end
 
 prev_regexp = Regexp
