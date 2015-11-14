@@ -21,7 +21,6 @@ MRuby::Build.new do |conf|
 
   # include the default GEMs
   conf.gembox 'default'
-
   # C compiler settings
   # conf.cc do |cc|
   #   cc.command = ENV['CC'] || 'gcc'
@@ -106,6 +105,21 @@ MRuby::Build.new('host-debug') do |conf|
 
   # bintest
   # conf.enable_bintest
+end
+
+MRuby::Build.new('test') do |conf|
+  # Gets set by the VS command prompts.
+  if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
+    toolchain :visualcpp
+  else
+    toolchain :gcc
+  end
+
+  enable_debug
+  conf.enable_bintest
+  conf.enable_test
+
+  conf.gembox 'default'
 end
 
 # Define cross build settings

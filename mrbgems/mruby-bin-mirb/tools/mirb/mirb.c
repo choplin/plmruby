@@ -74,16 +74,21 @@ get_history_path(mrb_state *mrb)
 static void
 p(mrb_state *mrb, mrb_value obj, int prompt)
 {
-  obj = mrb_funcall(mrb, obj, "inspect", 0);
+  mrb_value val;
+
+  val = mrb_funcall(mrb, obj, "inspect", 0);
   if (prompt) {
     if (!mrb->exc) {
       fputs(" => ", stdout);
     }
     else {
-      obj = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
+      val = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
     }
   }
-  fwrite(RSTRING_PTR(obj), RSTRING_LEN(obj), 1, stdout);
+  if (!mrb_string_p(val)) {
+    val = mrb_obj_as_string(mrb, obj);
+  }
+  fwrite(RSTRING_PTR(val), RSTRING_LEN(val), 1, stdout);
   putc('\n', stdout);
 }
 
@@ -188,9 +193,6 @@ is_code_block_open(struct mrb_parser_state *parser)
   return code_block_open;
 }
 
-void mrb_show_version(mrb_state *);
-void mrb_show_copyright(mrb_state *);
-
 struct _args {
   mrb_bool verbose      : 1;
   int argc;
@@ -276,6 +278,7 @@ print_cmdline(int code_block_open)
   else {
     printf("> ");
   }
+  fflush(stdout);
 }
 #endif
 
@@ -363,6 +366,8 @@ main(int argc, char **argv)
   ai = mrb_gc_arena_save(mrb);
 
   while (TRUE) {
+    char *utf8;
+
 #ifndef ENABLE_READLINE
     print_cmdline(code_block_open);
 
@@ -412,17 +417,21 @@ main(int argc, char **argv)
       strcpy(ruby_code, last_code_line);
     }
 
+    utf8 = mrb_utf8_from_locale(ruby_code, -1);
+    if (!utf8) abort();
+
     /* parse code */
     parser = mrb_parser_new(mrb);
     if (parser == NULL) {
       fputs("create parser state error\n", stderr);
       break;
     }
-    parser->s = ruby_code;
-    parser->send = ruby_code + strlen(ruby_code);
+    parser->s = utf8;
+    parser->send = utf8 + strlen(utf8);
     parser->lineno = cxt->lineno;
     mrb_parser_parse(parser, cxt);
     code_block_open = is_code_block_open(parser);
+    mrb_utf8_free(utf8);
 
     if (code_block_open) {
       /* no evaluation of code */

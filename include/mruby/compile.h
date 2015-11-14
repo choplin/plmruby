@@ -7,9 +7,12 @@
 #ifndef MRUBY_COMPILE_H
 #define MRUBY_COMPILE_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
+#include "mruby/common.h"
+
+/**
+ * MRuby Compiler
+ */
+MRB_BEGIN_DECL
 
 #include "mruby.h"
 
@@ -55,8 +58,8 @@ enum mrb_lex_state_enum {
   EXPR_CMDARG,                /* newline significant, +/- is an operator. */
   EXPR_MID,                   /* newline significant, +/- is an operator. */
   EXPR_FNAME,                 /* ignore newline, no reserved words. */
-  EXPR_DOT,                   /* right after `.' or `::', no reserved words. */
-  EXPR_CLASS,                 /* immediate after `class', no here document. */
+  EXPR_DOT,                   /* right after '.' or '::', no reserved words. */
+  EXPR_CLASS,                 /* immediate after 'class', no here document. */
   EXPR_VALUE,                 /* alike EXPR_BEG but label is disallowed. */
   EXPR_MAX_STATE
 };
@@ -183,8 +186,7 @@ MRB_API mrb_value mrb_load_file_cxt(mrb_state*,FILE*, mrbc_context *cxt);
 MRB_API mrb_value mrb_load_string_cxt(mrb_state *mrb, const char *s, mrbc_context *cxt);
 MRB_API mrb_value mrb_load_nstring_cxt(mrb_state *mrb, const char *s, int len, mrbc_context *cxt);
 
-#if defined(__cplusplus)
-}  /* extern "C" { */
-#endif
+/** @} */
+MRB_END_DECL
 
 #endif /* MRUBY_COMPILE_H */

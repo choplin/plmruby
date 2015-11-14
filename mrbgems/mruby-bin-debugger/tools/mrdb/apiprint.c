@@ -33,7 +33,7 @@ mrdb_check_syntax(mrb_state *mrb, mrb_debug_context *dbg, const char *expr, size
 mrb_value
 mrb_debug_eval(mrb_state *mrb, mrb_debug_context *dbg, const char *expr, size_t len, mrb_bool *exc)
 {
-  void *tmp;
+  void (*tmp)(struct mrb_state *, struct mrb_irep *, mrb_code *, mrb_value *);
   mrb_value ruby_code;
   mrb_value s;
   mrb_value v;
@@ -56,9 +56,9 @@ mrb_debug_eval(mrb_state *mrb, mrb_debug_context *dbg, const char *expr, size_t 
      *   e
      * end
      */
-    ruby_code = mrb_str_new_cstr(mrb, "begin\n");
+    ruby_code = mrb_str_new_lit(mrb, "begin\n");
     ruby_code = mrb_str_cat(mrb, ruby_code, expr, len);
-    ruby_code = mrb_str_cat_cstr(mrb, ruby_code, "\nrescue => e\ne\nend");
+    ruby_code = mrb_str_cat_lit(mrb, ruby_code, "\nrescue => e\ne\nend");
 
     recv = dbg->regs[0];
 

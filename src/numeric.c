@@ -18,13 +18,9 @@
 #define floor(f) floorf(f)
 #define ceil(f) ceilf(f)
 #define fmod(x,y) fmodf(x,y)
-#define FLO_MAX_DIGITS 7
-#define FLO_MAX_SIGN_LENGTH 3
-#define FLO_EPSILON FLT_EPSILON
+#define MRB_FLO_TO_STR_FMT "%.7g"
 #else
-#define FLO_MAX_DIGITS 14
-#define FLO_MAX_SIGN_LENGTH 10
-#define FLO_EPSILON DBL_EPSILON
+#define MRB_FLO_TO_STR_FMT "%.14g"
 #endif
 
 MRB_API mrb_float
@@ -59,7 +55,8 @@ num_pow(mrb_state *mrb, mrb_value x)
   mrb_get_args(mrb, "o", &y);
   yv = mrb_to_flo(mrb, y);
   d = pow(mrb_to_flo(mrb, x), yv);
-  if (mrb_fixnum_p(x) && mrb_fixnum_p(y) && FIXABLE(d) && yv > 0)
+  if (mrb_fixnum_p(x) && mrb_fixnum_p(y) && FIXABLE(d) && yv > 0 && 
+      (d < 0 || (d > 0 && (mrb_int)d > 0)))
     return mrb_fixnum_value((mrb_int)d);
   return mrb_float_value(mrb, d);
 }
@@ -107,142 +104,6 @@ num_div(mrb_state *mrb, mrb_value x)
  *  representation.
  */
 
-static mrb_value
-mrb_flo_to_str(mrb_state *mrb, mrb_float flo)
-{
-  double n = (double)flo;
-  int max_digits = FLO_MAX_DIGITS;
-
-  if (isnan(n)) {
-    return mrb_str_new_lit(mrb, "NaN");
-  }
-  else if (isinf(n)) {
-    if (n < 0) {
-      return mrb_str_new_lit(mrb, "-inf");
-    }
-    else {
-      return mrb_str_new_lit(mrb, "inf");
-    }
-  }
-  else {
-    int digit;
-    int m = 0;
-    int exp;
-    mrb_bool e = FALSE;
-    char s[48];
-    char *c = &s[0];
-    int length = 0;
-
-    if (signbit(n)) {
-      n = -n;
-      *(c++) = '-';
-    }
-
-    if (n != 0.0) {
-      if (n > 1.0) {
-        exp = (int)floor(log10(n));
-      }
-      else {
-        exp = (int)-ceil(-log10(n));
-      }
-    }
-    else {
-      exp = 0;
-    }
-
-    /* preserve significands */
-    if (exp < 0) {
-      int i, beg = -1, end = 0;
-      double f = n;
-      double fd = 0;
-      for (i = 0; i < FLO_MAX_DIGITS; ++i) {
-        f = (f - fd) * 10.0;
-        fd = floor(f + FLO_EPSILON);
-        if (fd != 0) {
-          if (beg < 0) beg = i;
-          end = i + 1;
-        }
-      }
-      if (beg >= 0) length = end - beg;
-      if (length > FLO_MAX_SIGN_LENGTH) length = FLO_MAX_SIGN_LENGTH;
-    }
-
-    if (abs(exp) + length >= FLO_MAX_DIGITS) {
-      /* exponent representation */
-      e = TRUE;
-      n = n / pow(10.0, exp);
-      if (isinf(n)) {
-        if (s < c) {            /* s[0] == '-' */
-          return mrb_str_new_lit(mrb, "-0.0");
-        }
-        else {
-          return mrb_str_new_lit(mrb, "0.0");
-        }
-      }
-    }
-    else {
-      /* un-exponent (normal) representation */
-      if (exp > 0) {
-        m = exp;
-      }
-    }
-
-    /* puts digits */
-    while (max_digits >= 0) {
-      double weight = (m < 0) ? 0.0 : pow(10.0, m);
-      double fdigit = (m < 0) ? n * 10.0 : n / weight;
-
-      if (fdigit < 0) fdigit = n = 0;
-      if (m < -1 && fdigit < FLO_EPSILON) {
-        if (e || exp > 0 || m <= -abs(exp)) {
-          break;
-        }
-      }
-      digit = (int)floor(fdigit + FLO_EPSILON);
-      if (m == 0 && digit > 9) {
-        n /= 10.0;
-        exp++;
-        continue;
-      }
-      *(c++) = '0' + digit;
-      n = (m < 0) ? n * 10.0 - digit : n - (digit * weight);
-      max_digits--;
-      if (m-- == 0) {
-        *(c++) = '.';
-      }
-    }
-    if (c[-1] == '0') {
-      while (&s[0] < c && c[-1] == '0') {
-        c--;
-      }
-      c++;
-    }
-
-    if (e) {
-      *(c++) = 'e';
-      if (exp > 0) {
-        *(c++) = '+';
-      }
-      else {
-        *(c++) = '-';
-        exp = -exp;
-      }
-
-      if (exp >= 100) {
-        *(c++) = '0' + exp / 100;
-        exp -= exp / 100 * 100;
-      }
-
-      *(c++) = '0' + exp / 10;
-      *(c++) = '0' + exp % 10;
-    }
-
-    *c = '\0';
-
-    return mrb_str_new(mrb, &s[0], c - &s[0]);
-  }
-}
-
 /* 15.2.9.3.16(x) */
 /*
  *  call-seq:
@@ -250,14 +111,17 @@ mrb_flo_to_str(mrb_state *mrb, mrb_float flo)
  *
  *  Returns a string containing a representation of self. As well as a
  *  fixed or exponential form of the number, the call may return
- *  ``<code>NaN</code>'', ``<code>Infinity</code>'', and
- *  ``<code>-Infinity</code>''.
+ *  "<code>NaN</code>", "<code>Infinity</code>", and
+ *  "<code>-Infinity</code>".
  */
 
 static mrb_value
 flo_to_s(mrb_state *mrb, mrb_value flt)
 {
-  return mrb_flo_to_str(mrb, mrb_float(flt));
+  if (isnan(mrb_float(flt))) {
+    return mrb_str_new_lit(mrb, "NaN");
+  }
+  return mrb_float_to_str(mrb, flt, MRB_FLO_TO_STR_FMT);
 }
 
 /* 15.2.9.3.2  */
@@ -573,7 +437,7 @@ flo_round(mrb_state *mrb, mrb_value num)
 {
   double number, f;
   mrb_int ndigits = 0;
-  int i;
+  mrb_int i;
 
   mrb_get_args(mrb, "|i", &ndigits);
   number = mrb_float(num);
@@ -588,7 +452,7 @@ flo_round(mrb_state *mrb, mrb_value num)
   }
 
   f = 1.0;
-  i = abs(ndigits);
+  i = ndigits >= 0 ? ndigits : -ndigits;
   while  (--i >= 0)
     f = f*10.0;
 
@@ -956,11 +820,13 @@ fix_xor(mrb_state *mrb, mrb_value x)
 static mrb_value
 lshift(mrb_state *mrb, mrb_int val, mrb_int width)
 {
-  mrb_assert(width >= 0);
+  mrb_assert(width > 0);
   if (width > NUMERIC_SHIFT_WIDTH_MAX) {
-    mrb_raisef(mrb, E_RANGE_ERROR, "width(%S) > (%S:MRB_INT_BIT-1)",
-               mrb_fixnum_value(width),
-               mrb_fixnum_value(NUMERIC_SHIFT_WIDTH_MAX));
+    mrb_float f = (mrb_float)val;
+    while (width--) {
+      f *= 2;
+    }
+    return mrb_float_value(mrb, f);
   }
   return mrb_fixnum_value(val << width);
 }
@@ -968,7 +834,7 @@ lshift(mrb_state *mrb, mrb_int val, mrb_int width)
 static mrb_value
 rshift(mrb_int val, mrb_int width)
 {
-  mrb_assert(width >= 0);
+  mrb_assert(width > 0);
   if (width >= NUMERIC_SHIFT_WIDTH_MAX) {
     if (val < 0) {
       return mrb_fixnum_value(-1);
@@ -1295,7 +1161,7 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, integer, "to_int", int_to_i, MRB_ARGS_NONE());
 
   /* Fixnum Class */
-  fixnum = mrb->fixnum_class = mrb_define_class(mrb, "Fixnum", integer);
+  mrb->fixnum_class = fixnum = mrb_define_class(mrb, "Fixnum", integer);
   mrb_define_method(mrb, fixnum,  "+",        fix_plus,          MRB_ARGS_REQ(1)); /* 15.2.8.3.1  */
   mrb_define_method(mrb, fixnum,  "-",        fix_minus,         MRB_ARGS_REQ(1)); /* 15.2.8.3.2  */
   mrb_define_method(mrb, fixnum,  "*",        fix_mul,           MRB_ARGS_REQ(1)); /* 15.2.8.3.3  */
@@ -1315,7 +1181,7 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fixnum,  "divmod",   fix_divmod,        MRB_ARGS_REQ(1)); /* 15.2.8.3.30 (x) */
 
   /* Float Class */
-  fl = mrb->float_class = mrb_define_class(mrb, "Float", numeric);                 /* 15.2.9 */
+  mrb->float_class = fl = mrb_define_class(mrb, "Float", numeric);                 /* 15.2.9 */
   mrb_undef_class_method(mrb,  fl, "new");
   mrb_define_method(mrb, fl,      "+",         flo_plus,         MRB_ARGS_REQ(1)); /* 15.2.9.3.1  */
   mrb_define_method(mrb, fl,      "-",         flo_minus,        MRB_ARGS_REQ(1)); /* 15.2.9.3.2  */

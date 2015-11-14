@@ -16,10 +16,10 @@
 #include "mruby/debug.h"
 #include "mruby/error.h"
 #include "mruby/class.h"
-#include "mrb_throw.h"
+#include "mruby/throw.h"
 
 MRB_API mrb_value
-mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len)
+mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, size_t len)
 {
   mrb_value arg = mrb_str_new(mrb, ptr, len);
   return mrb_obj_new(mrb, c, 1, &arg);
@@ -152,7 +152,7 @@ exc_inspect(mrb_state *mrb, mrb_value exc)
     mrb_str_append(mrb, str, line);
     mrb_str_cat_lit(mrb, str, ": ");
     if (append_mesg) {
-      mrb_str_append(mrb, str, mesg);
+      mrb_str_cat_str(mrb, str, mesg);
       mrb_str_cat_lit(mrb, str, " (");
     }
     mrb_str_cat_cstr(mrb, str, mrb_obj_classname(mrb, exc));
@@ -165,7 +165,7 @@ exc_inspect(mrb_state *mrb, mrb_value exc)
     str = mrb_str_new_cstr(mrb, cname);
     mrb_str_cat_lit(mrb, str, ": ");
     if (append_mesg) {
-      mrb_str_append(mrb, str, mesg);
+      mrb_str_cat_str(mrb, str, mesg);
     }
     else {
       mrb_str_cat_cstr(mrb, str, cname);
@@ -206,7 +206,7 @@ MRB_API mrb_noreturn void
 mrb_exc_raise(mrb_state *mrb, mrb_value exc)
 {
   mrb->exc = mrb_obj_ptr(exc);
-  if (!mrb->out_of_memory) {
+  if (!mrb->gc.out_of_memory) {
     exc_debug_info(mrb, mrb->exc);
   }
   if (!mrb->jmp) {
@@ -424,15 +424,14 @@ mrb_sys_fail(mrb_state *mrb, const char *mesg)
 }
 
 MRB_API mrb_noreturn void
-mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_int argc, const mrb_value *argv, char const* fmt, ...)
+mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_value args, char const* fmt, ...)
 {
   mrb_value exc;
   va_list ap;
 
   va_start(ap, fmt);
   exc = mrb_funcall(mrb, mrb_obj_value(E_NOMETHOD_ERROR), "new", 3,
-                    mrb_vformat(mrb, fmt, ap), mrb_symbol_value(id),
-                    mrb_ary_new_from_values(mrb, argc, argv));
+                    mrb_vformat(mrb, fmt, ap), mrb_symbol_value(id), args);
   va_end(ap);
   mrb_exc_raise(mrb, exc);
 }
@@ -454,7 +453,7 @@ mrb_init_exception(mrb_state *mrb)
 
   mrb->eStandardError_class = mrb_define_class(mrb, "StandardError", mrb->eException_class); /* 15.2.23 */
   runtime_error = mrb_define_class(mrb, "RuntimeError", mrb->eStandardError_class);          /* 15.2.28 */
-  mrb->nomem_err = mrb_obj_ptr(mrb_exc_new_str(mrb, runtime_error, mrb_str_new_lit(mrb, "Out of memory")));
+  mrb->nomem_err = mrb_obj_ptr(mrb_exc_new_str_lit(mrb, runtime_error, "Out of memory"));
   script_error = mrb_define_class(mrb, "ScriptError", mrb->eException_class);                /* 15.2.37 */
   mrb_define_class(mrb, "SyntaxError", script_error);                                        /* 15.2.38 */
   mrb_define_class(mrb, "SystemStackError", exception);

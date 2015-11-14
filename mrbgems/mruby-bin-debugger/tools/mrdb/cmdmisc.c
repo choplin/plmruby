@@ -33,7 +33,7 @@ static help_msg help_msg_list[] = {
     "\n"
     "Continue program stopped by a breakpoint.\n"
     "If N, which is non negative value, is passed,\n"
-    "proceed program until the N-th breakpoint is comming.\n"
+    "proceed program until the N-th breakpoint is coming.\n"
     "If N is not passed, N is assumed 1.\n"
   },
   {
@@ -255,11 +255,11 @@ replace_ext(mrb_state *mrb, const char *filename, const char *ext)
     len = strlen(filename);
   }
 
-  if ((s = mrb_malloc(mrb, len + strlen(ext) + 1)) != NULL) {
-    memset(s, '\0', len + strlen(ext) + 1);
-    strncpy(s, filename, len);
-    strcat(s, ext);
-  }
+  s = mrb_malloc(mrb, len + strlen(ext) + 1);
+  memset(s, '\0', len + strlen(ext) + 1);
+  strncpy(s, filename, len);
+  strcat(s, ext);
+
   return s;
 }
 
@@ -411,11 +411,11 @@ dbgcmd_list(mrb_state *mrb, mrdb_state *mrdb)
       filename = st->filename;
     }
     mrb_debug_list(mrb, mrdb->dbg, filename, st->line_min, st->line_max);
-    listcmd_parser_state_free(mrb, st);
 
     if (filename != NULL && filename != st->filename) {
       mrb_free(mrb, filename);
     }
+    listcmd_parser_state_free(mrb, st);
   }
 
   return DBGST_PROMPT;
@@ -466,6 +466,7 @@ dbgcmd_quit(mrb_state *mrb, mrdb_state *mrdb)
       int buf;
 
       printf("The program is running.  Exit anyway? (y or n) ");
+      fflush(stdout);
 
       if ((buf = getchar()) == EOF) {
         mrdb->dbg->xm = DBG_QUIT;

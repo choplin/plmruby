@@ -2,6 +2,9 @@
 *.bak
 *.d
 *.o
+/benchmark/**/*.dat
+/benchmark/*.pdf
+/benchmark/*.png
 *.orig
 *.pdb
 *.rej
@@ -17,4 +20,6 @@ cscope.out
 /src/y.tab.c
 /bin
 /build
-/lib
+/mruby-source-*.gem
+doc/api
+.yardoc

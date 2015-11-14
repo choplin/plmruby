@@ -1,6 +1,6 @@
 assert('__FILE__') do
-  file = __FILE__
-  assert_true 'test/t/syntax.rb' == file || 'test\t\syntax.rb' == file
+  file = __FILE__.split('test/')[1]
+  assert_true 't/syntax.rb' == file || 't\syntax.rb' == file
 end
 
 assert('__LINE__') do
@@ -167,13 +167,85 @@ assert('Abbreviated variable assignment as returns') do
   assert_equal 1, Syntax4AbbrVarAsgnAsReturns::A.new.b
 end
 
-assert('Splat and mass assignment') do
+assert('Splat and multiple assignment') do
   *a = *[1,2,3]
   b, *c = *[7,8,9]
 
   assert_equal [1,2,3], a
   assert_equal 7, b
   assert_equal [8,9], c
+
+  (a, b), c = [1,2],3
+  assert_equal [1,2,3], [a,b,c]
+  (a, b), c = 1,2,3
+  assert_equal [1,nil,2], [a,b,c]
+end
+
+assert('Splat and multiple assignment from variable') do
+  a = [1, 2, 3]
+  b, *c = a
+
+  assert_equal 1, b
+  assert_equal [2, 3], c
+end
+
+assert('Splat and multiple assignment from variables') do
+  a = [1, 2, 3]
+  b = [4, 5, 6, 7]
+  c, d, *e, f, g = *a, *b
+
+  assert_equal 1, c
+  assert_equal 2, d
+  assert_equal [3, 4, 5], e
+  assert_equal 6, f
+  assert_equal 7, g
+end
+
+assert('Splat and multiple assignment in for') do
+  a = [1, 2, 3, 4, 5, 6, 7]
+  for b, c, *d, e, f in [a] do
+  end
+
+  assert_equal 1, b
+  assert_equal 2, c
+  assert_equal [3, 4, 5], d
+  assert_equal 6, e
+  assert_equal 7, f
+end
+
+assert('Splat without assignment') do
+  * = [0]
+  a, * = [1, 2]
+  assert_equal 1, a
+end
+
+assert('multiple assignment (rest)') do
+  *a = 0
+  assert_equal [0], a
+end
+
+assert('multiple assignment (rest+post)') do
+  *a, b = 0, 1, 2
+  *c, d = 3
+
+  assert_equal [0, 1], a
+  assert_equal 2, b
+  assert_equal [], c
+  assert_equal 3, d
+end
+
+assert('multiple assignment (nosplat array rhs)') do
+  a, *b = []
+  *c, d = [0]
+  e, *f, g = [1, 2]
+
+  assert_nil a
+  assert_equal [], b
+  assert_equal [], c
+  assert_equal 0, d
+  assert_equal 1, e
+  assert_equal [], f
+  assert_equal 2, g
 end
 
 assert('Return values of case statements') do
@@ -202,6 +274,30 @@ assert('Return values of case statements') do
   assert_equal [2], a
   assert_equal [nil], b
   assert_equal 1, fb.call
+end
+
+assert('Return values of if and case statements') do
+  true_clause_value =
+    if true
+      1
+    else
+      case 2
+      when 3
+      end
+      4
+    end
+
+  assert_equal 1, true_clause_value
+end
+
+assert('Return values of no expression case statement') do
+  when_value =
+    case
+    when true
+      1
+    end
+
+  assert_equal 1, when_value
 end
 
 assert('splat in case statement') do
