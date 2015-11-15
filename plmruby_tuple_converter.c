@@ -91,7 +91,7 @@ mrb_value_to_heap_tuple(tuple_converter *converter, mrb_value value, Tuplestores
 	// TODO should call BlessTupleDesc(tupdesc) ?
 	
 	if (!is_scalar && !mrb_hash_p(value))
-		elog(ERROR, "argument must be hash");
+		elog(ERROR, "Only hash can be converted into tuple");
 
 	Datum *values = (Datum *) palloc(sizeof(Datum) * natts);
 	bool *nulls = (bool *) palloc(sizeof(bool) * natts);
