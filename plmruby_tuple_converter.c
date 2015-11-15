@@ -87,7 +87,9 @@ mrb_value_to_heap_tuple(tuple_converter *converter, mrb_value value, Tuplestores
 	mrb_state *mrb = converter->mrb;
 	TupleDesc tupdesc = converter->tupdesc;
 	int natts = tupdesc->natts;
-
+	
+	// TODO should call BlessTupleDesc(tupdesc) ?
+	
 	if (!is_scalar && !mrb_hash_p(value))
 		elog(ERROR, "argument must be hash");
 
