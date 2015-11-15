@@ -7,6 +7,7 @@ include $(MRUBY_MAK_FILE)
 
 GEM_DIR := mrbgems/plmruby
 GEM_SRC := $(wildcard $(GEM_DIR)/src/*.c) $(wildcard $(GEM_DIR)/src/*.rb)
+GEM_INCLUDE_DIR := $(GEM_DIR)/src
 
 MRUBY_DEFINES = MRB_INT64
 
@@ -23,7 +24,7 @@ REGRESS = init-extension $(filter-out init-extension, $(subst sql/,,$(subst .sql
 
 # strip " from library directory options
 SHLIB_LINK += $(subst \",,$(MRUBY_LDFLAGS_BEFORE_LIBS)) $(MRUBY_LIBS) $(subst \",,$(MRUBY_LDFLAGS))
-PG_CPPFLAGS += -I$(MRUBY_INCLUDE_DIR) $(addprefix -D,$(MRUBY_DEFINES))
+PG_CPPFLAGS += -I$(MRUBY_INCLUDE_DIR) -I$(GEM_INCLUDE_DIR) $(addprefix -D,$(MRUBY_DEFINES))
 
 PG_CONFIG := pg_config
 PGXS := $(shell $(PG_CONFIG) --pgxs)

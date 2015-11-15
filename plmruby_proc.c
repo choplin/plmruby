@@ -61,7 +61,7 @@ new_plmruby_proc(Oid fn_oid, FunctionCallInfo fcinfo, bool validate, bool is_tri
 		mcxt = fcinfo->flinfo->fn_mcxt;
 
 	plmruby_proc *proc = (plmruby_proc *) MemoryContextAllocZero(mcxt, offsetof(plmruby_proc, argtypes) +
-																	   sizeof(plmruby_type) * cache->nargs);
+										   sizeof(plmruby_type) * cache->nargs);
 
 	proc->cache = cache;
 	for (int i = 0; i < cache->nargs; i++)
@@ -245,8 +245,8 @@ compile_mruby(Oid fn_oid, const char *prosrc, int nargs, const char **argnames, 
 	if (is_trigger)
 	{
 		appendStringInfoString(&src,
-							   "NEW, OLD, TG_NAME, TG_WHEN, TG_LEVEL, TG_OP, "
-									   "TG_RELID, TG_TABLE_NAME, TG_TABLE_SCHEMA, TG_ARGV");
+							   "new, old, tg_name, tg_when, tg_level, tg_op, "
+									   "tg_relid, tg_table_name, tg_table_schema, tg_argv");
 	}
 	else
 	{
