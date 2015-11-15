@@ -109,6 +109,7 @@ mrb_value_to_heap_tuple(tuple_converter *converter, mrb_value value, Tuplestores
 			mrb_value colname = converter->colnames[i];
 			for (int j = 0; j < tupdesc->natts; ++j)
 			{
+				// TODO ignore an order of hash keys
 				mrb_value key = mrb_ary_ref(mrb, keys, j);
 				if (mrb_eql(mrb, colname, key))
 				{
